@@ -1,0 +1,116 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend (lint, migrations, tests)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: recap
+          POSTGRES_PASSWORD: recap
+          POSTGRES_DB: recap_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U recap -d recap_test"
+          --health-interval 3s --health-timeout 3s --health-retries 20
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgres://recap:recap@localhost:5432/recap_test
+      TEST_DATABASE_URL: postgres://recap:recap@localhost:5432/recap_test
+      SESSION_SECRET: ci-secret-ci-secret-ci-secret-ci-secret
+      SMTP_HOST: localhost
+      SMTP_FROM: Recap <no-reply@localhost>
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - name: Lint (ESLint + Prettier)
+        run: npm run lint
+      - name: Typecheck (tsc --noEmit)
+        run: npm run typecheck
+      - name: Migrations apply on an empty database
+        run: npm run db:migrate
+      - name: Migrations can be reverted and re-applied
+        run: |
+          npm run db:migrate:down -- --all
+          npm run db:migrate
+          npm run db:seed
+      - name: Tests
+        run: npm test
+      - name: docs/openapi.json is up to date
+        run: npm run openapi:export -- --check
+      - name: Migrations match the schema (no ungenerated changes)
+        run: |
+          npm run db:generate
+          git diff --exit-code -- drizzle
+          test -z "$(git status --porcelain -- drizzle)"
+
+  frontend:
+    name: Frontend (lint, tests, build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - name: Lint (ESLint + Prettier)
+        run: npm run lint
+      - name: Typecheck
+        run: npm run typecheck
+      - name: API types match docs/openapi.json
+        run: |
+          npm run api:types
+          git diff --exit-code -- src/api/schema.d.ts
+      - name: Tests
+        run: npm test
+      - name: Build
+        run: npm run build
+
+  compose:
+    name: Docker Compose starts from zero
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: make up
+        run: make up
+      - name: Backend /health answers
+        run: curl --fail --silent --show-error http://localhost:3001/health
+      - name: Frontend reaches the backend through the /api proxy
+        run: curl --fail --silent --show-error http://localhost:5173/api/v1/health
+      - name: The 16 tables exist
+        run: |
+          count=$(docker compose --project-directory . --env-file .env -f infra/docker-compose.yml \
+            exec -T db psql -U recap -d recap -Atc \
+            "select count(*) from information_schema.tables where table_schema = 'public' and table_name <> 'schema_migrations'")
+          test "$count" = "16"
+      - name: Logs on failure
+        if: failure()
+        run: docker compose --project-directory . --env-file .env -f infra/docker-compose.yml logs
+      - name: make down
+        if: always()
+        run: make down
