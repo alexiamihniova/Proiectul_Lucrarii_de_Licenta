@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, 'segment-*']
   pull_request:
 
 concurrency:
@@ -63,6 +63,42 @@ jobs:
           npm run db:generate
           git diff --exit-code -- drizzle
           test -z "$(git status --porcelain -- drizzle)"
+
+  # TEMPORARY (Segment 1A → 1B). The account and access specification in backend/tests/auth/
+  # fails until Segment 1B implements the auth module, so it runs here without blocking merges.
+  # Segment 1B: when it passes, delete this job (the tests then run in the `backend` job).
+  auth-spec:
+    name: Auth specification (expected to fail until Segment 1B)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: recap
+          POSTGRES_PASSWORD: recap
+          POSTGRES_DB: recap_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U recap -d recap_test"
+          --health-interval 3s --health-timeout 3s --health-retries 20
+    env:
+      NODE_ENV: test
+      TEST_DATABASE_URL: postgres://recap:recap@localhost:5432/recap_test
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - name: Auth specification
+        run: npm run test:auth
 
   frontend:
     name: Frontend (lint, tests, build)

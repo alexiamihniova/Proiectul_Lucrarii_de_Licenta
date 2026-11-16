@@ -86,6 +86,33 @@ describe('configuration', () => {
     ).not.toEqual([]);
   });
 
+  it('uses the SRS values for accounts by default (RF2, C-24) and bcrypt cost 12 (ADR-0010)', () => {
+    const config = loadConfig({ ...VALID_ENV });
+    expect(config.auth).toEqual({
+      bcryptCost: 12,
+      maxFailedAttempts: 5,
+      lockMinutes: 15,
+      resetTtlMinutes: 60,
+      resetRequestsPerHour: 3,
+      rateLimit: { max: 20, windowSeconds: 60 },
+    });
+    expect(config.trustProxy).toBe(false);
+  });
+
+  it('refuses a weak bcrypt cost in production but allows a fast one in tests', () => {
+    const production = {
+      ...VALID_ENV,
+      NODE_ENV: 'production',
+      LLM_PROVIDER: 'real',
+      LLM_API_KEY: 'k',
+      LLM_MODEL: 'm',
+    };
+    expect(problems({ ...production, BCRYPT_COST: '9' }).join()).toContain('BCRYPT_COST');
+    expect(problems({ ...production, BCRYPT_COST: '10' })).toEqual([]);
+    expect(problems({ ...VALID_ENV, BCRYPT_COST: '4' })).toEqual([]);
+    expect(problems({ ...VALID_ENV, BCRYPT_COST: '16' })).not.toEqual([]);
+  });
+
   it('rejects malformed numbers and booleans', () => {
     expect(problems({ ...VALID_ENV, PORT: 'abc' })).not.toEqual([]);
     expect(problems({ ...VALID_ENV, SMTP_SECURE: 'yes' })).not.toEqual([]);

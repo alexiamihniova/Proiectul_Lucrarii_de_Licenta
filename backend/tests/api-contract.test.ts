@@ -2,12 +2,17 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import Fastify from 'fastify';
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, InjectOptions } from 'fastify';
+import type pg from 'pg';
 import { ERRORS } from '../src/core/errors.js';
 import { requireDeclaredAccess } from '../src/core/http.js';
 import type { Database } from '../src/db/client.js';
 import { generateOpenApi } from '../src/scripts/export-openapi.js';
 import { buildTestApp } from './helpers/app.js';
+import { createTestPool } from './helpers/db.js';
+import { BODIES } from './helpers/sample-bodies.js';
+import { sessionsIfAuthExists } from './helpers/session.js';
+import type { TestUser } from './helpers/session.js';
 
 interface Operation {
   operationId: string;
@@ -24,51 +29,33 @@ interface OpenApi {
   components: { schemas: Record<string, unknown>; securitySchemes: Record<string, unknown> };
 }
 
-/** Smallest valid request body for every operation that has one. Doubles as contract examples. */
-const BODIES: Record<string, unknown> = {
-  register: {
-    email: 'ana@example.com',
-    password: 'parola123',
-    password_confirmation: 'parola123',
-    gdpr_consent: true,
-  },
-  login: { email: 'ana@example.com', password: 'parola123' },
-  requestPasswordReset: { email: 'ana@example.com' },
-  confirmPasswordReset: { token: 'abc', password: 'parola123', password_confirmation: 'parola123' },
-  updatePreferences: { theme: 'dark', reminder_time: '07:30', daily_goal: 20 },
-  deleteAccount: { password: 'parola123' },
-  createSubject: { name: 'Baze de date' },
-  renameSubject: { name: 'BD' },
-  renameDocument: { file_name: 'curs-sql.pdf' },
-  createConcept: {
-    name: 'Cheie primară',
-    definition: 'Identifică unic un rând.',
-    passage_ids: [1],
-  },
-  updateConcept: { name: 'Cheie primară' },
-  mergeConcepts: { source_concept_id: 2 },
-  generateMaterials: { document_id: 1, type: 'flashcard', concept_ids: [1, 2], count: 5 },
-  reportMaterial: { reason: 'Răspunsul corect este altul.' },
-  createTest: {
-    subject_id: 1,
-    question_count: 10,
-    types: ['multiple_choice', 'open'],
-    difficulty: 'medium',
-  },
-  answerTestQuestion: { material_id: 1, answer: 'true' },
-  answerReview: { material_id: 1, rating: 'hard' },
-  unsubscribeFromReminders: { token: 'signed-token' },
-  adminUpdateSettings: { uploads_per_day: 15 },
-};
+/**
+ * Tags (= modules) whose routes are implemented and therefore no longer answer 501.
+ * A segment adds its tag here when it replaces its stubs, e.g. Segment 1B adds 'auth'.
+ */
+const IMPLEMENTED_TAGS: string[] = [];
 
 describe('API contract', () => {
   let app: FastifyInstance;
   let db: Database;
+  let pool: pg.Pool;
+  let sessions: { student?: TestUser; admin?: TestUser } = {};
+
+  /**
+   * `app.inject` as someone allowed to call the route: an administrator under /admin, a
+   * student elsewhere. Before the auth module exists there are no sessions and no hook.
+   */
+  const inject = (options: InjectOptions & { url: string }) => {
+    const user = options.url.startsWith('/api/v1/admin/') ? sessions.admin : sessions.student;
+    return app.inject({ ...options, headers: { ...user?.headers, ...options.headers } });
+  };
   let spec: OpenApi;
   let operations: { method: string; path: string; op: Operation }[];
 
   beforeAll(async () => {
     ({ app, db } = await buildTestApp());
+    pool = createTestPool();
+    sessions = await sessionsIfAuthExists(app, pool);
     spec = app.swagger() as unknown as OpenApi;
     operations = Object.entries(spec.paths).flatMap(([path, item]) =>
       Object.entries(item).map(([method, op]) => ({ method: method.toUpperCase(), path, op })),
@@ -76,6 +63,9 @@ describe('API contract', () => {
   });
 
   afterAll(async () => {
+    const ids = [sessions.student?.id, sessions.admin?.id].filter((id) => id !== undefined);
+    await pool.query('DELETE FROM users WHERE id = ANY($1)', [ids]);
+    await pool.end();
     await app.close();
     await db.close();
   });
@@ -176,23 +166,23 @@ describe('API contract', () => {
     }
   });
 
-  it('every stub answers 501 with the single error format', async () => {
-    const all = apiOperations();
-    expect(all.length).toBeGreaterThanOrEqual(60);
-    for (const { method, path, op } of all) {
+  it('every route that is not implemented yet answers 501 with the single error format', async () => {
+    expect(apiOperations().length).toBeGreaterThanOrEqual(60);
+    const stubs = apiOperations().filter(({ op }) => !IMPLEMENTED_TAGS.includes(op.tags[0]!));
+    for (const { method, path, op } of stubs) {
       const url = path.replace(/\{\w+\}/g, '1');
       const hasBody = ['POST', 'PATCH', 'PUT'].includes(method);
       const payload = BODIES[op.operationId];
       const response =
         op.operationId === 'uploadDocument'
-          ? await app.inject({
+          ? await inject({
               method: 'POST',
               url,
               headers: { 'content-type': 'multipart/form-data; boundary=x' },
               payload:
                 '--x\r\ncontent-disposition: form-data; name="file"; filename="a.txt"\r\ncontent-type: text/plain\r\n\r\nhello\r\n--x--\r\n',
             })
-          : await app.inject({
+          : await inject({
               method: method as 'GET',
               url,
               ...(hasBody && payload ? { payload } : {}),
@@ -216,22 +206,16 @@ describe('API contract', () => {
     it('validation errors list each invalid field', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/v1/auth/register',
-        payload: {
-          email: 'not-an-email',
-          password: 'short',
-          password_confirmation: 'x',
-          gdpr_consent: false,
-        },
+        // /auth/login: the generic format. /auth/register answers M01 instead (design 1.2).
+        url: '/api/v1/auth/login',
+        payload: { email: 'not-an-email', password: '' },
       });
       expect(response.statusCode).toBe(400);
       const body = response.json();
       expect(body.error.code).toBe('VALIDATION_ERROR');
       expect(body.error.message).toBe(ERRORS.VALIDATION_ERROR.message);
       const paths = body.error.details.map((d: { path: string }) => d.path);
-      expect(paths).toEqual(
-        expect.arrayContaining(['body/email', 'body/password', 'body/gdpr_consent']),
-      );
+      expect(paths).toEqual(expect.arrayContaining(['body/email', 'body/password']));
     });
 
     it.each([
@@ -240,14 +224,14 @@ describe('API contract', () => {
       ['params', '/api/v1/subjects/abc'],
       ['params', '/api/v1/documents/-1'],
     ])('rejects an invalid %s: %s', async (_kind, url) => {
-      const response = await app.inject({ method: 'GET', url });
+      const response = await inject({ method: 'GET', url });
       expect(response.statusCode).toBe(400);
       expect(response.json().error.code).toBe('VALIDATION_ERROR');
     });
 
     it('enforces the documented limits of the specification', async () => {
       const post = (url: string, payload: unknown) =>
-        app.inject({ method: 'POST', url, payload: payload as object });
+        inject({ method: 'POST', url, payload: payload as object });
       const cases: [string, unknown][] = [
         ['/api/v1/subjects', { name: 'x'.repeat(101) }], // RF3: 1–100
         ['/api/v1/subjects', { name: '   ' }],
@@ -310,7 +294,7 @@ describe('API contract', () => {
         const response = await post(url, payload);
         expect(response.statusCode, `${url} ${JSON.stringify(payload).slice(0, 80)}`).toBe(400);
       }
-      const patch = (url: string, payload: object) => app.inject({ method: 'PATCH', url, payload });
+      const patch = (url: string, payload: object) => inject({ method: 'PATCH', url, payload });
       expect((await patch('/api/v1/preferences', { daily_goal: 4 })).statusCode).toBe(400); // RF18: 5–100
       expect((await patch('/api/v1/preferences', { reminder_time: '24:00' })).statusCode).toBe(400);
       expect((await patch('/api/v1/admin/settings', { max_file_size_mb: 51 })).statusCode).toBe(
@@ -326,7 +310,7 @@ describe('API contract', () => {
     });
 
     it('malformed JSON answers 400 in the same format', async () => {
-      const response = await app.inject({
+      const response = await inject({
         method: 'POST',
         url: '/api/v1/subjects',
         headers: { 'content-type': 'application/json' },

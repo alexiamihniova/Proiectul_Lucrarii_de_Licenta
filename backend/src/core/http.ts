@@ -59,9 +59,9 @@ export type Auth = 'public' | 'student' | 'admin' | 'any';
 declare module 'fastify' {
   interface FastifyContextConfig {
     /**
-     * Who may call the route. Set by `endpoint()`. Segment 1 enforces it with ONE global
-     * `preHandler` hook that reads `request.routeOptions.config.auth`; routers never check
-     * roles themselves.
+     * Who may call the route. Set by `endpoint()`. The auth module enforces it with ONE global
+     * `onRequest` hook (before body validation) that reads `request.routeOptions.config.auth`;
+     * routers never check roles themselves. See docs/design/auth.md, section 6.
      */
     auth?: Auth;
   }
@@ -119,10 +119,13 @@ export function endpoint<S extends EndpointSchema>(meta: EndpointMeta, schema: S
       description: [meta.description, authNote].filter(Boolean).join('\n\n'),
       security: meta.auth === 'public' ? [] : [{ cookieAuth: [] }],
       ...schema,
+      // Typed as the success responses only: handlers return those and THROW AppError for
+      // everything else, so the error statuses are documentation, not handler return types.
+      // (Intersecting with a status → ErrorResponse index would type every reply as an error.)
       response: {
         ...schema.response,
         ...errorResponses(meta.auth, meta.errors ?? []),
-      } as S['response'] & Record<number, typeof ErrorResponse>,
+      } as S['response'],
     },
   };
 }

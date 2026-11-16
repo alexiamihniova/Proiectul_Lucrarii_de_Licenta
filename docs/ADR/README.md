@@ -15,5 +15,8 @@ vechi „Înlocuit de ADR-NNNN”.
 | 0007 | [Convențiile API și contractul generat din cod](0007-conventii-api.md)     | Acceptat |
 | 0008 | [Ștergere logică și stările documentului impuse în baza de date](0008-starile-documentului.md) | Acceptat |
 | 0009 | [Interfața LLMClient](0009-llmclient.md)                                   | Acceptat |
+| 0010 | [Parole cu bcrypt, cost 12, configurabil](0010-bcrypt-cost-12.md)          | Acceptat |
+| 0011 | [Amprenta sesiunii și CSRF prin verificarea originii](0011-amprenta-sesiunii-si-csrf.md) | Acceptat |
+| 0012 | [Furnizorul LLM: Google Gemini API, plan gratuit](0012-furnizor-llm.md)  | Acceptat |
 
 Șablon: Context · Decizie · Alternative respinse · Consecințe.

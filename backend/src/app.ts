@@ -7,11 +7,13 @@ import { registerErrorHandling } from './core/error-handler.js';
 import { healthRoutes } from './core/health.js';
 import { requireDeclaredAccess } from './core/http.js';
 import { loggerOptions } from './core/logger.js';
+import type { LogStream } from './core/logger.js';
 import { API_PREFIX, registerOpenApi } from './core/openapi.js';
 import type { Database } from './db/client.js';
 import { adminRouter } from './modules/admin/router.js';
 import { analysisRouter } from './modules/analysis/router.js';
 import { authRouter } from './modules/auth/router.js';
+import type { SendPasswordResetEmail, UserFileStore } from './modules/auth/service.js';
 import { contentRouter } from './modules/content/router.js';
 import { documentsRouter } from './modules/documents/router.js';
 import { createLlmClient } from './modules/llm/service.js';
@@ -32,6 +34,16 @@ export interface AppDependencies {
   db: Database;
   /** Override in tests; defaults to the client selected by LLM_PROVIDER. */
   llm?: LLMClient;
+  /**
+   * Sends the password-reset e-mail. Defaults to the reminders module's sender
+   * (`createPasswordResetSender`). Tests pass a function that records the messages.
+   * Segment 1B wires it into the auth service.
+   */
+  sendPasswordResetEmail?: SendPasswordResetEmail;
+  /** Removes a deleted account's uploaded files. Segment 2 provides the real one (Q43). */
+  userFiles?: UserFileStore;
+  /** Receives every log line; lets tests check what is and is not logged. */
+  logStream?: LogStream;
 }
 
 /**
@@ -40,8 +52,10 @@ export interface AppDependencies {
  */
 export async function buildApp(deps: AppDependencies): Promise<FastifyInstance> {
   const app = Fastify({
-    logger: loggerOptions(deps.config),
+    logger: loggerOptions(deps.config, deps.logStream),
     genReqId: () => crypto.randomUUID(),
+    // The client address used by the per-IP rate limit (docs/design/auth.md, 3.3).
+    trustProxy: deps.config.trustProxy,
     bodyLimit: 1024 * 1024, // JSON bodies; file uploads are limited by the multipart plugin
   });
 

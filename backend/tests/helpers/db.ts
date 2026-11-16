@@ -139,7 +139,7 @@ export function factories(pool: pg.Pool) {
   };
 }
 
-/** A whole student graph: one row in every table that hangs off a subject. */
+/** A whole student graph: a new user plus one row in every table that hangs off them. */
 export async function seedGraph(pool: pg.Pool) {
   const f = factories(pool);
   const userId = await f.user();
@@ -149,6 +149,15 @@ export async function seedGraph(pool: pg.Pool) {
     token_hash: `hash-${userId}`,
     expires_at: new Date(Date.now() + 3_600_000),
   });
+  return seedOwnedData(pool, userId);
+}
+
+/**
+ * Study data for an EXISTING user (for example one registered through the API): one row in
+ * every table below `subjects`, plus a model call. Returns the ids.
+ */
+export async function seedOwnedData(pool: pg.Pool, userId: number) {
+  const f = factories(pool);
   const subjectId = await f.subject(userId);
   const documentId = await f.document(subjectId);
   const passageId = await f.passage(documentId);

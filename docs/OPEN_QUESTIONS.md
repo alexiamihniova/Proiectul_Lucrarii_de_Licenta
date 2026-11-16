@@ -15,16 +15,16 @@ dacă decizia schimbă schema sau contractul, segmentul respectiv face migrarea 
 | Nr. | Subiect                                                        | Segment | Stare      |
 | --- | -------------------------------------------------------------- | ------- | ---------- |
 | Q1  | Păstrarea jurnalului APEL_LLM: 12 luni sau 90 de zile          | 7       | Deschisă   |
-| Q2  | Starea „Blocat temporar” a contului                            | 1       | Deschisă   |
+| Q2  | Starea „Blocat temporar” a contului                            | 1       | Confirmată |
 | Q3  | Materialele neverificate: nu se salvează, dar se numără        | 3, 4, 7 | Deschisă   |
 | Q4  | CONCEPT ține de materie (SRS) sau de document (Dosar)          | 3       | Confirmată |
-| Q5  | Valorile implicite ale preferințelor                           | 1       | Deschisă   |
+| Q5  | Valorile implicite ale preferințelor                           | 1       | Confirmată |
 | Q6  | Limita lunară de cost: valoare implicită și monedă             | 7       | Deschisă   |
 | Q7  | Dificultatea nu este păstrată pe material                      | 4       | Deschisă   |
 | Q8  | Unde se țin întrebările unui test înainte de răspunsuri        | 4       | Deschisă   |
 | Q9  | Unicitatea materialelor (C-13) în baza de date                 | 4       | Deschisă   |
 | Q10 | Administratorul tratează rapoarte fără să vadă materialul      | 7       | Deschisă   |
-| Q11 | Forma exportului CSV                                           | 1       | Deschisă   |
+| Q11 | Forma exportului CSV                                           | 1       | Confirmată |
 | Q12 | Documentele șterse logic: cât se păstrează; ocolirea limitei zilnice | 2 | Deschisă   |
 | Q13 | Actualizarea stării documentului în 5 s: interogare periodică  | 2, 6    | Deschisă   |
 | Q14 | Generarea materialelor: sincronă sau în fundal                 | 4       | Deschisă   |
@@ -34,11 +34,11 @@ dacă decizia schimbă schema sau contractul, segmentul respectiv face migrarea 
 | Q18 | „Marchează ca incorect” (RF10) și „Raportează” (RF12)          | 4       | Deschisă   |
 | Q19 | Auditul în jurnalul structurat, fără tabel                     | 1, 7    | Confirmată |
 | Q20 | Memento-ul „în aplicație” fără entitate proprie                | 8       | Deschisă   |
-| Q21 | Crearea contului inițial de administrator                      | 1       | Deschisă   |
-| Q22 | Deconectarea nu revocă jetonul JWT                             | 1       | Deschisă   |
+| Q21 | Crearea contului inițial de administrator                      | 1       | Confirmată |
+| Q22 | Deconectarea nu revocă jetonul JWT                             | 1       | Confirmată |
 | Q23 | Reîncercarea e-mailurilor: 3 încercări (SRS) sau una (C-01)    | 8       | Deschisă   |
 | Q24 | RĂSPUNS nu are legătură directă cu utilizatorul                | 4, 5    | Deschisă   |
-| Q25 | Docker Compose nu a fost rulat local                           | 0       | Deschisă   |
+| Q25 | Docker Compose nu a fost rulat local                           | 0       | Confirmată |
 | Q26 | Versiunea documentelor din `docs/`                             | 0       | Deschisă   |
 | Q27 | Cele 15 entități din enunț și cele 16 tabele                   | 0       | Confirmată |
 | Q28 | Tipurile de material: patru (RF10) sau cinci (Tabelul 3.21)    | 4       | Confirmată |
@@ -46,6 +46,18 @@ dacă decizia schimbă schema sau contractul, segmentul respectiv face migrarea 
 | Q30 | Stack: Node.js, nu Python                                      | 0       | Confirmată |
 | Q31 | PPTX                                                           | 2       | Confirmată |
 | Q32 | Precondiția UC-06 „limita zilnică nu este depășită”            | 4       | Deschisă   |
+| Q33 | Limitarea ratei per IP: valori                                 | 1       | Confirmată |
+| Q34 | Parola și limita de 72 de octeți a bcrypt                      | 1       | Confirmată |
+| Q35 | Blocarea după 5 încercări dezvăluie că e-mailul există         | 1       | Confirmată |
+| Q36 | Contul blocat de administrator: ce poate face și ce i se spune | 1, 7    | Confirmată |
+| Q37 | Administratorul își blochează sau își șterge propriul cont     | 1, 7    | Confirmată |
+| Q38 | Resetarea parolei ridică blocarea temporară                    | 1       | Confirmată |
+| Q39 | Mai multe jetoane de resetare valabile simultan                | 1       | Confirmată |
+| Q40 | Schimbarea parolei și a e-mailului din cont nu există în SRS   | 1       | Confirmată |
+| Q41 | Sesiunea nu se prelungește la activitate                       | 1       | Confirmată |
+| Q42 | Acordul GDPR: fără versiune și fără retragere                  | 1       | Deschisă   |
+| Q43 | Ștergerea fișierelor la ștergerea contului, înainte de Segmentul 2 | 1, 2 | Amânată (2) |
+| Q44 | Cota zilnică de apeluri către model per utilizator             | 3, 4    | Confirmată |
 
 ---
 
@@ -60,6 +72,8 @@ dacă decizia schimbă schema sau contractul, segmentul respectiv face migrarea 
 - **Acum.** Schema nu impune nimic. Sarcina de curățare este a Segmentului 7 și nu există încă.
 
 ### Q2. Starea „Blocat temporar” a contului
+
+- **Decizie (16.11.2026).** Propunerea de mai jos (câmpul de decizie a rămas necompletat la Segmentul 1A).
 
 - **Ambiguitate.** SRS: `stare (activ, blocat)` + `blocat până la`. C-17: contul „va avea starea
   «Blocat temporar» timp de 15 minute, apoi va reveni automat la «Activ»; starea este păstrată pe
@@ -88,6 +102,8 @@ dacă decizia schimbă schema sau contractul, segmentul respectiv face migrarea 
 - **De confirmat.** Dacă `source_verified` trebuie păstrat ca și coloană sau eliminat.
 
 ### Q5. Valorile implicite ale preferințelor
+
+- **Decizie (16.11.2026).** Propunerea de mai jos (câmp necompletat la Segmentul 1A).
 
 - **Lipsă.** C-23 spune „cu valorile implicite din RF18”, dar RF18 dă doar intervale.
 - **Propunere.** Temă deschisă; mascotă activă; ora 18:00; canal „în aplicație” (niciun e-mail
@@ -144,6 +160,8 @@ dacă decizia schimbă schema sau contractul, segmentul respectiv face migrarea 
   materialului, fără text.
 
 ### Q11. Forma exportului CSV
+
+- **Decizie (16.11.2026).** Propunerea de mai jos: JSON, respectiv ZIP cu câte un CSV pe set (câmp necompletat la Segmentul 1A). Segmentul 1B justifică dependența pentru ZIP.
 
 - **Ambiguitate.** RF20 cere export „în format JSON și CSV” pentru materii, concepte, rezultate
   și progres. Patru seturi de date nu încap într-un singur fișier CSV.
@@ -226,12 +244,21 @@ dacă decizia schimbă schema sau contractul, segmentul respectiv face migrarea 
 
 ### Q21. Crearea contului inițial de administrator
 
+- **Decizie (16.11.2026).** Propunerea de mai jos: comanda `npm run admin:create` (câmp necompletat la Segmentul 1A).
+
 - **Lipsă.** SRS 2.1.8 cere un cont inițial de administrator, fără să spună cum se creează.
 - **Propunere.** O comandă a Segmentului 1 (`npm run admin:create -- --email …`), care cere
   parola interactiv; fără valori implicite în cod sau în `.env`.
 - **Acum.** Nu există. `make seed` scrie doar setările.
 
 ### Q22. Deconectarea nu revocă jetonul JWT
+
+- **Decizie (16.11.2026).** Cale de mijloc, fără coloană nouă (ADR-0011): JWT-ul poartă o
+  amprentă a parolei, calculată cu HMAC cu secretul serverului, deci schimbarea parolei
+  invalidează toate sesiunile. Deconectarea șterge doar cookie-ul. Utilizatorul este citit din
+  bază la fiecare cerere, deci blocarea de către administrator are efect imediat.
+- **Risc acceptat.** După deconectare, un JWT furat rămâne valid până la expirare (cel mult 24 h)
+  sau până la schimbarea parolei. Opțiune viitoare: coloana `users.session_version`.
 
 - **Limită a soluției.** Cu un JWT fără stare, deconectarea șterge cookie-ul, dar un jeton copiat
   rămâne valid până la expirare (cel mult 24 de ore).
@@ -268,7 +295,9 @@ dacă decizia schimbă schema sau contractul, segmentul respectiv face migrarea 
 - **Local s-a verificat** modul fără Docker: PostgreSQL 18 (Postgres.app), `make migrate`,
   `make seed`, `make test`, `make lint`, serverul și proxy-ul frontendului. CI și Compose folosesc
   PostgreSQL 16; migrarea nu folosește nimic specific unei versiuni.
-- **De făcut.** Push pe o ramură și verificarea jobului `compose`.
+- **Verificat (16.11.2026).** La primul push al ramurii `segment-1a-auth-design`, jobul `compose`
+  din CI a trecut: `make up` de la zero, `/health`, proxy-ul frontendului, cele 16 tabele. Tot
+  atunci au trecut joburile `backend` și `frontend`. Local, Docker rămâne neinstalat.
 
 ### Q26. Versiunea documentelor din `docs/`
 
@@ -291,9 +320,174 @@ dacă decizia schimbă schema sau contractul, segmentul respectiv face migrarea 
   controlat prin limita lunară (RF25) și prin limitele pe cerere (1–20 concepte, 1–20 materiale).
 - **Acum.** Contractul nu are eroare de limită pentru generare.
 
+### Q33. Limitarea ratei per IP: valori
+
+- **Decizie (16.11.2026).** Confirmat: 20 de cereri pe minut per IP pe rutele publice de cont și 3 linkuri
+  de resetare pe oră per cont, ambele configurabile. La demonstrație, când mai mulți utilizatori
+  vin din aceeași rețea (aceeași adresă IP publică), limita per IP se mărește din configurare
+  (`RATE_LIMIT_AUTH_MAX`), fără modificări de cod.
+
+- **Lipsă.** SRS dă o singură limită: 5 încercări eșuate consecutive pentru același e-mail,
+  15 minute (RF2). Nu există limite per adresă IP, deși fără ele un atacator poate încerca o
+  parolă pe mii de conturi sau poate umple baza cu conturi.
+- **Propunere.** Pe rutele publice de cont (înregistrare, autentificare, cerere și confirmare de
+  resetare, dezabonare): cel mult 20 de cereri pe minut per IP. Cereri de resetare: cel mult 3 pe
+  oră per cont. Toate configurabile.
+- **Acum.** `RATE_LIMIT_AUTH_MAX=20`, `RATE_LIMIT_AUTH_WINDOW_SECONDS=60`,
+  `PASSWORD_RESET_MAX_PER_HOUR=3`. Contorul este în memoria procesului API (un singur proces în
+  pilot); la mai multe procese ar trebui mutat în baza de date.
+
+### Q36. Contul blocat de administrator: ce poate face și ce i se spune
+
+- **Decizie (16.11.2026).** Confirmat, propunerea de mai jos.
+
+- **Lipsă.** RF21 permite blocarea, dar nu spune ce vede studentul blocat.
+- **Propunere.** Cu parola corectă primește `403 ACCOUNT_BLOCKED` („Contul este blocat de
+  administrator”); cu parola greșită primește M03, ca oricine, deci blocarea nu se află fără
+  parolă. Sesiunile existente primesc `403 ACCOUNT_BLOCKED` la următoarea cerere. Nu primește
+  link de resetare a parolei (cererea răspunde tot `202`).
+- **Acum.** Așa descriu designul și testele din `backend/tests/auth/`.
+
+### Q37. Administratorul își blochează sau își șterge propriul cont
+
+- **Decizie (16.11.2026).** Confirmat. Conturile de administrator se gestionează în afara API-ului;
+  procedura este în `docs/design/auth.md`, 6.4.
+
+- **Lipsă.** RF21 nu exclude ca administratorul să se blocheze singur sau să șteargă ultimul cont
+  de administrator, ceea ce ar lăsa sistemul fără administrare.
+- **Propunere.** Un administrator nu își poate bloca sau șterge propriul cont, iar conturile de
+  administrator nu pot fi șterse sau blocate prin API (doar din baza de date). Răspuns: `409 CONFLICT`.
+- **Acum.** Așa cer testele serviciului. `POST /account/delete` este oricum doar pentru studenți.
+
+### Q38. Resetarea parolei ridică blocarea temporară
+
+- **Decizie (16.11.2026).** Confirmat, propunerea de mai jos.
+
+- **Lipsă.** RF2 nu spune ce se întâmplă cu blocarea de 15 minute când studentul își resetează
+  parola în acest interval.
+- **Propunere.** O resetare reușită pune `failed_login_attempts = 0` și `locked_until = NULL`:
+  studentul a dovedit că deține căsuța de e-mail. Blocarea de către administrator nu este atinsă.
+- **Acum.** Așa cer testele.
+
+### Q39. Mai multe jetoane de resetare valabile simultan
+
+- **Decizie (16.11.2026).** Confirmat, cu condiția: la prima folosire a unui link, toate celelalte
+  linkuri active ale contului devin invalide. Verificat de testul „invalidates every other
+  outstanding link of the account (Q39)” din `backend/tests/auth/password-reset.test.ts`.
+
+- **Ambiguitate.** Dosar, Tabelul 5.3: „Un student poate cere mai multe resetări; fiecare jeton
+  este unic și valabil o oră”. Nu se spune dacă o cerere nouă anulează jetoanele vechi.
+- **Propunere.** Jetoanele nefolosite rămân valabile până la expirare (litera Dosarului), dar o
+  resetare reușită le anulează pe toate ale contului. Numărul lor este limitat de Q33.
+- **Acum.** Așa cer testele.
+
+### Q40. Schimbarea parolei și a e-mailului din cont nu există în SRS
+
+- **Decizie (16.11.2026).** În afara scopului (nu sunt în SRS). Trecute la „Limitări și dezvoltări
+  viitoare” în `docs/design/auth.md`, 10.
+
+- **Lipsă.** Singura cale de a schimba parola este resetarea prin e-mail (RF2). Ecranul Setări
+  (RF18–RF20) nu are schimbarea parolei și nici a adresei de e-mail.
+- **Propunere.** Rămâne așa în versiunea 1. Dacă se adaugă schimbarea parolei din cont, ea cere
+  parola curentă și invalidează sesiunile prin același mecanism (ADR-0011).
+- **Acum.** Nu există rute pentru ele.
+
+### Q41. Sesiunea nu se prelungește la activitate
+
+- **Decizie (16.11.2026).** Confirmat: sesiune fixă de 24 de ore, conform SRS.
+
+- **Ambiguitate.** RF2: jeton „valabil cel mult 24 de ore”. C-11: la expirare apare ecranul
+  „Sesiune expirată”. Nu se spune dacă activitatea prelungește sesiunea.
+- **Propunere.** Fără prelungire: sesiunea expiră la 24 de ore de la autentificare, oricâtă
+  activitate ar fi. Este citirea literală și cea mai simplă.
+- **Acum.** `expires_at` din răspuns este momentul fix al expirării; frontendul îl poate folosi
+  ca să anunțe din timp.
+
+### Q42. Acordul GDPR: fără versiune și fără retragere
+
+- **Lipsă.** UTILIZATOR păstrează doar data acordului. Nu există versiunea textului acceptat și
+  nici retragerea acordului altfel decât prin ștergerea contului.
+- **Propunere.** Suficient pentru pilot: retragerea acordului = ștergerea contului (RF20).
+- **Acum.** `gdpr_consent_at` se completează la înregistrare și nu se mai modifică.
+
+### Q43. Ștergerea fișierelor la ștergerea contului, înainte de Segmentul 2
+
+- **Decizie (16.11.2026).** Rămâne pentru Segmentul 2, ca obligație în
+  `docs/design/auth-checklist.md`, secțiunea G. Datele deja trimise furnizorului modelului de
+  limbaj nu pot fi șterse la ștergerea contului (vezi ADR-0012).
+
+- **Dependență.** RF20 cere ștergerea imediată a datelor, deci și a fișierelor încărcate. Unde și
+  cum stau fișierele pe disc decide Segmentul 2.
+- **Propunere.** Modulul `auth` nu atinge discul: primește un port `UserFileStore` cu
+  `deleteAllForUser(userId)`, apelat după ce tranzacția de ștergere s-a încheiat. Segmentul 2
+  furnizează implementarea; până atunci implementarea implicită nu face nimic și avertizează în
+  jurnal. Dacă ștergerea fișierelor eșuează, contul rămâne șters, iar eșecul se jurnalizează;
+  Segmentul 2 are nevoie de o curățare a fișierelor orfane.
+- **Acum.** Portul este definit în `backend/src/modules/auth/types.ts`.
+
+### Q44. Cota zilnică de apeluri către model per utilizator
+
+- **Decizie (16.11.2026).** Cotele se numără în apeluri către model: buget zilnic per proiect de
+  80 % din RPD-ul modelului și cotă per utilizator de 60 de apeluri pe zi, ambele configurabile
+  (ADR-0012). Abaterea de la SRS 3.1.3 este acceptată: generarea este grupată per tip de
+  conținut și validată per concept; detaliile rămân pentru Segmentul 4. Limita de 10 încărcări
+  pe zi din SRS rămâne separată.
+- **Formulare propusă pentru SRS 3.1.3**, Tabelul 3.3, rândul „Generare materiale (RF10, RF12)”:
+  - Intrare: „Lista conceptelor alese (1–20), fiecare cu pasajele sale (id, text); tipul;
+    cantitatea pentru fiecare concept (1–20); dificultatea.”
+  - Ieșire: „Listă de materiale, fiecare cu identificatorul conceptului: tip, enunț, răspuns,
+    explicație, variante (grilă: 4), id pasaj, citat.”
+  - Interval, timp: „Timeout 60 s; ieșirea se validează separat pentru fiecare concept:
+    materialele invalide ale unui concept se resping fără a le afecta pe ale celorlalte.”
+  - După tabel: „Numărul de apeluri către model este limitat zilnic, per utilizator și pe
+    întreaga aplicație; limitele sunt configurabile. La atingerea lor, sistemul afișează un mesaj
+    care spune când se poate relua generarea.”
+
+- **Lipsă.** SRS limitează doar încărcările (implicit 10 pe zi per student, configurabil 1–50).
+  Nu există limită pentru generare, deși UC-06 o presupune (Q32), iar cota gratuită a
+  furnizorului este per proiect, nu per utilizator.
+- **Propunerea autoarei.** 5 documente noi pe zi per utilizator, configurabil.
+- **Estimare (16.11.2026), cu presupuneri.** Un document de curs obișnuit (20–30 de pagini,
+  aproximativ 10 concepte), pentru care studentul cere rezumat, flashcard-uri și un test grilă:
+  - extragerea conceptelor: 1–3 apeluri (în medie 2);
+  - generarea, după interfața din SRS 3.1.3 (un apel primește un concept și pasajele lui):
+    10 concepte × 3 tipuri = 30 de apeluri;
+  - evaluarea răspunsurilor deschise: câte un apel pe răspuns (0–5);
+  - reîncercări la format greșit (cel mult 2 pe apel): aproximativ 10 %.
+
+  Total: aproximativ 35–40 de apeluri pe document. Dacă un apel de generare ar primi toate
+  conceptele alese (abatere de la SRS 3.1.3, de decis la Segmentul 4): aproximativ 5–6.
+- **Cota gratuită Gemini**, după citiri din AI Studio raportate de terți în septembrie–octombrie
+  2026 (nu din documentația oficială; de verificat pe proiectul propriu): Flash 5 cereri pe
+  minut și 20 pe zi; Flash-Lite 15 pe minut, 500 pe zi, 250 000 de jetoane pe minut.
+- **Concluzie.** 5 documente pe zi înseamnă 175–200 de apeluri pe zi per utilizator. Pe
+  Flash-Lite încap 2 utilizatori activi la maximum pe zi (cu gruparea conceptelor: aproximativ
+  16). Pe Flash nu încape nici un singur document. Limita de 15 cereri pe minut face ca un
+  document să dureze cel puțin 2–3 minute și cere o coadă cu ritm controlat.
+- **Propunere.** (1) Cota per utilizator se numără în apeluri către model, nu în documente,
+  fiindcă generarea se face la cerere și un document poate consuma oricât. (2) Pe lângă ea, un
+  buget zilnic per proiect, sub cota furnizorului, cu mesaj clar la epuizare. (3) Ambele în
+  CONFIGURARE. (4) Limita de încărcări din SRS rămâne separată.
+- **Acum.** Nimic implementat; se decide înainte de Segmentele 3 și 4.
+
 ---
 
 ## Confirmate (istoric)
+
+### Q34. Parola și limita de 72 de octeți a bcrypt
+
+- RNF6 impune bcrypt, care ignoră tot ce depășește 72 de octeți. RF1 permite 64 de caractere, iar
+  64 de litere cu diacritice înseamnă până la 128 de octeți: două parole diferite ar deveni egale.
+- **Decizie (16.11.2026).** O parolă de peste 72 de octeți în UTF-8 este respinsă cu
+  `PASSWORD_TOO_LONG` (variantă a mesajului M01), cu un mesaj care spune limita explicit.
+
+### Q35. Blocarea după 5 încercări dezvăluie că e-mailul există
+
+- După a 5-a încercare greșită, un cont existent răspunde `429 ACCOUNT_TEMPORARILY_LOCKED`, iar
+  o adresă fără cont răspunde în continuare `401`. Diferența arată că adresa are cont.
+- **Decizie (16.11.2026).** Excepție acceptată de la anti-enumerare, fiindcă RF2, M03 și C-12 cer
+  explicit blocarea și afișarea timpului rămas. Este atenuată de limita per IP (Q33). A doua
+  excepție cerută de SRS este M02 la înregistrare.
 
 ### Q4. CONCEPT ține de materie (SRS) sau de document (Dosar)
 

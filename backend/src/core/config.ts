@@ -42,6 +42,16 @@ const envSchema = z
     SESSION_TTL_HOURS: int(1, 24).default(24),
     SESSION_COOKIE_NAME: z.string().min(1).default('recap_session'),
 
+    // Accounts (docs/design/auth.md, section 0). SRS values are the defaults.
+    BCRYPT_COST: int(4, 15).default(12),
+    AUTH_MAX_FAILED_ATTEMPTS: int(1, 20).default(5),
+    AUTH_LOCK_MINUTES: int(1, 1440).default(15),
+    PASSWORD_RESET_TTL_MINUTES: int(5, 1440).default(60),
+    PASSWORD_RESET_MAX_PER_HOUR: int(1, 100).default(3),
+    RATE_LIMIT_AUTH_MAX: int(1, 1_000_000).default(20),
+    RATE_LIMIT_AUTH_WINDOW_SECONDS: int(1, 3600).default(60),
+    TRUST_PROXY: bool.default(false),
+
     LLM_PROVIDER: z.string().min(1).default('fake'),
     LLM_MODEL: optionalString,
     LLM_API_KEY: optionalString,
@@ -86,6 +96,13 @@ const envSchema = z
         message: 'LLM_PROVIDER=fake is not allowed in production',
       });
     }
+    if (env.NODE_ENV === 'production' && env.BCRYPT_COST < 10) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['BCRYPT_COST'],
+        message: 'BCRYPT_COST must be at least 10 in production',
+      });
+    }
     if (env.DEFAULT_MAX_FILE_SIZE_MB > env.UPLOAD_HARD_LIMIT_MB) {
       ctx.addIssue({
         code: 'custom',
@@ -104,6 +121,17 @@ export interface Config {
   timezone: string;
   database: { url: string; poolMax: number };
   session: { secret: string; ttlHours: number; cookieName: string };
+  auth: {
+    bcryptCost: number;
+    maxFailedAttempts: number;
+    lockMinutes: number;
+    resetTtlMinutes: number;
+    resetRequestsPerHour: number;
+    /** Per-IP limit on the public account routes. */
+    rateLimit: { max: number; windowSeconds: number };
+  };
+  /** Use X-Forwarded-For for the client address (only behind a trusted reverse proxy). */
+  trustProxy: boolean;
   llm: { provider: string; model?: string; apiKey?: string; baseUrl?: string };
   smtp: {
     host: string;
@@ -172,6 +200,15 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
       defaultMaxFileSizeMb: e.DEFAULT_MAX_FILE_SIZE_MB,
       defaultUploadsPerDay: e.DEFAULT_UPLOADS_PER_DAY,
     },
+    auth: {
+      bcryptCost: e.BCRYPT_COST,
+      maxFailedAttempts: e.AUTH_MAX_FAILED_ATTEMPTS,
+      lockMinutes: e.AUTH_LOCK_MINUTES,
+      resetTtlMinutes: e.PASSWORD_RESET_TTL_MINUTES,
+      resetRequestsPerHour: e.PASSWORD_RESET_MAX_PER_HOUR,
+      rateLimit: { max: e.RATE_LIMIT_AUTH_MAX, windowSeconds: e.RATE_LIMIT_AUTH_WINDOW_SECONDS },
+    },
+    trustProxy: e.TRUST_PROXY,
     worker: { pollIntervalMs: e.WORKER_POLL_INTERVAL_MS },
   };
 }

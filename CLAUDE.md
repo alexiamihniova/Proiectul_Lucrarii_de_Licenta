@@ -45,6 +45,13 @@ Run from the repository root. `make help` lists everything.
 
 Before you say a task is done: `make lint && make test && make check-generated` must pass.
 
+**Temporary, until Segment 1B is done.** The account and access specification in
+`backend/tests/auth/` fails against the 501 stubs, so it is excluded from `make test` and runs
+with `make test-auth` (CI job `auth-spec`, non-blocking). **Segment 1B must remove the
+exclusion**: delete `backend/vitest.auth.config.ts`, the `test:auth` script, the `test-auth`
+make target, the `exclude` line in `backend/vitest.config.ts` and the `auth-spec` CI job, then
+delete this paragraph. When 1B is finished, `make test` includes the auth tests and passes.
+
 Backend tests need a PostgreSQL database at `TEST_DATABASE_URL`; they drop and recreate every
 table in it. Without Docker, use a local PostgreSQL (`make db-create`); the Compose stack is
 verified by the `compose` job in CI.
@@ -63,7 +70,10 @@ verified by the `compose` job in CI.
    in `core/api-schemas.ts`; closed value sets go in `core/domain.ts`.
 4. **Only `repository.ts` queries the database.** Routers and schemas never import from `db/`.
 5. **Every route is declared with `endpoint()`** (`core/http.ts`). The app refuses to start
-   otherwise. Routers never check roles: Segment 1's global hook does, from `config.auth`.
+   otherwise. Routers never check roles or read cookies: the one global `onRequest` hook of the
+   auth module does, from `config.auth`, and sets `request.user` and `request.actor`.
+   **Repository functions that touch user-owned data take a `UserActor` (`core/actor.ts`) as
+   their first parameter** and filter by `actor.userId`; another user's resource answers `404`.
 6. **Errors**: throw `new AppError('CODE', details?)`. Add new codes to the catalogue in
    `core/errors.ts`. Never send an ad-hoc error body.
 7. **RB1 has one implementation.** Source verification (passage exists in the document, quote
@@ -101,6 +111,14 @@ verified by the `compose` job in CI.
 - Deleted documents (`status = 'deleted'`) are never returned by the API.
 - Tests live in `backend/tests/` (Vitest, real PostgreSQL) and next to the code in
   `frontend/src/`. Use `FakeLLMClient` for anything that touches the model.
+- In tests, act as a user through `tests/helpers/session.ts` (`registerStudent`,
+  `registerAdmin`); never build cookies or insert users by hand. When a segment implements
+  routes, it adds its tag to `IMPLEMENTED_TAGS` in `tests/api-contract.test.ts`.
+- `tests/helpers/authorization.ts` (`describeOwnership`) checks, for every student route of the
+  contract, that another student gets `404`. It picks up new routes by itself; a route with a
+  new kind of identifier fails it until you teach the helper to create that resource. Data
+  scoped by the session alone (no identifier) needs a hand-written check with `twoStudents()`.
+- Never change a test in `backend/tests/auth/` to make it pass; report it instead.
 - One commit per step, imperative English message, body explaining why.
 - Audit events (failed logins, account deletion, settings changes, admin actions) go through
   `auditLog()` in `core/logger.ts`.
@@ -128,7 +146,7 @@ segment implements and what it must export for the others.
 | # | Segment | Module(s) | In scope | Requirements |
 | - | ------- | --------- | -------- | ------------ |
 | 0 | Foundation (done) | `core`, `db`, all stubs | Schema, contracts, config, `LLMClient` interface and fake, infrastructure | — |
-| 1 | Accounts | `auth` | Registration, login, logout, session JWT in httpOnly cookie, the global auth hook and `request.user`, lock after 5 failures, password reset tokens, preferences, data export, account deletion, initial admin | RF1, RF2, RF18, RF20; C-11, C-12, C-17, C-23, C-24; UC-01, 02, 03, 11, 12 |
+| 1 | Accounts (1A design and tests: done; 1B implementation: next) | `auth` | Registration, login, logout, session JWT in httpOnly cookie, the global auth hook and `request.user`, lock after 5 failures, password reset tokens, preferences, data export, account deletion, initial admin. Specification: `docs/design/auth.md`, `docs/design/auth-tests.md`, `backend/tests/auth/`; review list: `docs/design/auth-checklist.md` | RF1, RF2, RF18, RF20; C-11, C-12, C-17, C-23, C-24; UC-01, 02, 03, 11, 12 |
 | 2 | Document processing | `documents` | Subjects CRUD, upload validation and storage, daily quota, text extraction and cleaning, passages, document state machine, soft delete, the worker task that claims queued documents | RF3–RF6; C-02, C-03, C-07, C-08, C-09, C-10; UC-04 |
 | 3 | LLM core | `llm`, `analysis` | Real `LLMClient`, retries and `llm_calls` journal, concept extraction, **source verification**, concept management | RF7–RF9, RF23 (journal writes); C-06, C-14, C-22; UC-05, UC-17 |
 | 4 | Materials and tests | `content` | Material generation with rules R1–R5, tests (configure, answer, evaluate, result), reports | RF10–RF13; C-04, C-05, C-13, C-15, C-19; UC-06, 07, 08 |
@@ -150,6 +168,10 @@ Allowed dependency direction between modules (no cycles):
 - **RB3** — SM-2: intervals 1 day, 6 days, then I·EF; EF ≥ 1.3; a wrong answer resets to 1 day.
 - **Document states** — queued, processing, ready, error, deleted; transitions in
   `modules/documents/state-machine.ts`, also enforced by a database trigger.
+
+- LLM: Gemini API, plan gratuit — vezi docs/ADR/0012-furnizor-llm.md. Orice segment care atinge
+  generarea respectă constrângerile de acolo (cotă comună mică, 429, fără date personale în
+  prompturi, grupare, generare la cerere, rezervă clasică).
 
 ## Before starting a segment
 

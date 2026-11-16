@@ -9,10 +9,12 @@ import type { Config } from './config.js';
  * Audit events (SRS 2.4 row 5, 3.6.3) are ordinary log lines carrying `audit: true` plus
  * `action`, `actor_id` and `target` — see `auditLog()`.
  */
-export function loggerOptions(config: Config): FastifyServerOptions['logger'] {
-  if (config.env === 'test') return false;
+export function loggerOptions(config: Config, stream?: LogStream): FastifyServerOptions['logger'] {
+  // Tests are silent unless they pass a stream to inspect what would be logged.
+  if (config.env === 'test' && !stream) return false;
   return {
-    level: config.logLevel,
+    level: config.env === 'test' ? 'info' : config.logLevel,
+    ...(stream ? { stream } : {}),
     base: { service: 'recap-backend' },
     redact: {
       paths: [
@@ -26,6 +28,11 @@ export function loggerOptions(config: Config): FastifyServerOptions['logger'] {
       censor: '[redacted]',
     },
   };
+}
+
+/** Destination for log lines; one JSON document per `write` call. */
+export interface LogStream {
+  write(line: string): void;
 }
 
 export interface AuditEvent {

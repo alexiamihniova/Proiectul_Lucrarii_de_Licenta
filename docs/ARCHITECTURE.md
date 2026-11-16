@@ -127,9 +127,9 @@ Pași ficși, în ordine:
 
 1. **Identificator de cerere** (`reqId`, UUID) atașat fiecărei linii de jurnal.
 2. **Autentificare și rol**: fiecare rută își declară nivelul de acces prin `endpoint()`
-   (`public`, `student`, `admin`, `any`), în `config.auth`. Segmentul 1 adaugă un singur hook
-   global `preHandler` care citește `request.routeOptions.config.auth`, verifică cookie-ul și
-   pune `request.user`. Routerele nu verifică roluri. Aplicația refuză să pornească dacă o rută
+   (`public`, `student`, `admin`, `any`), în `config.auth`. Modulul `auth` adaugă un singur hook
+   global `onRequest` (înainte de validare) care citește `request.routeOptions.config.auth`,
+   verifică cookie-ul și pune `request.user` (docs/design/auth.md, secțiunea 6). Routerele nu verifică roluri. Aplicația refuză să pornească dacă o rută
    din `/api/v1` nu își declară accesul (`requireDeclaredAccess`).
 3. **Validare**: schema Zod a rutei. Eșecul devine `400 VALIDATION_ERROR` cu lista câmpurilor.
 4. **Handler → serviciu → repository**.
