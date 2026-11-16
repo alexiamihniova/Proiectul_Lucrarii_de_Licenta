@@ -18,5 +18,6 @@ vechi „Înlocuit de ADR-NNNN”.
 | 0010 | [Parole cu bcrypt, cost 12, configurabil](0010-bcrypt-cost-12.md)          | Acceptat |
 | 0011 | [Amprenta sesiunii și CSRF prin verificarea originii](0011-amprenta-sesiunii-si-csrf.md) | Acceptat |
 | 0012 | [Furnizorul LLM: Google Gemini API, plan gratuit](0012-furnizor-llm.md)  | Acceptat |
+| 0013 | [Text structurat: propoziția ca unitate, pasajul ca șir de propoziții](0013-text-structurat.md) | Propus |
 
 Șablon: Context · Decizie · Alternative respinse · Consecințe.
