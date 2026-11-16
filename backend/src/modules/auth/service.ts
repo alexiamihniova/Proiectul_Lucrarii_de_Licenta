@@ -20,7 +20,7 @@ import {
   signSessionToken,
   verifySessionToken,
 } from './session-token.js';
-import { RESET_PASSWORD_PATH, RESET_TOKEN_BYTES } from './types.js';
+import { GDPR_CONSENT_VERSION, RESET_PASSWORD_PATH, RESET_TOKEN_BYTES } from './types.js';
 import type {
   AuthService,
   AuthServiceDeps,
@@ -46,6 +46,7 @@ import type {
  */
 export type * from './types.js';
 export {
+  GDPR_CONSENT_VERSION,
   PASSWORD_FINGERPRINT_BYTES,
   PASSWORD_FINGERPRINT_PREFIX,
   PASSWORD_MAX_BYTES,
@@ -115,6 +116,7 @@ export function createAuthService(deps: AuthServiceDeps): AuthService {
       passwordHash: await hashPassword(password, cost),
       role,
       gdprConsentAt: now(),
+      gdprConsentVersion: GDPR_CONSENT_VERSION,
     });
     if (!user) throw new AppError('EMAIL_ALREADY_EXISTS');
     return user;
@@ -315,7 +317,11 @@ export function createAuthService(deps: AuthServiceDeps): AuthService {
         filename: `${name}.json`,
         body: {
           exported_at: current.toISOString(),
-          user: toPublicUser(user),
+          user: {
+            ...toPublicUser(user),
+            gdpr_consent_at: user.gdprConsentAt.toISOString(),
+            gdpr_consent_version: user.gdprConsentVersion,
+          },
           preferences: await repository.getPreferences(actor),
           ...data,
         },

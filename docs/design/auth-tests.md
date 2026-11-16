@@ -1,6 +1,7 @@
 # Testele modulului de conturi: trasabilitate
 
-Specificația executabilă a Segmentului 1 este în `backend/tests/auth/`: 14 fișiere, 477 de teste.
+Specificația executabilă a Segmentului 1 este în `backend/tests/auth/`: 14 fișiere, 477 de teste,
+scrise în Segmentul 1A. După decizia Q42 s-a adăugat `consent-version.test.ts` (5 teste).
 Tabelele de mai jos leagă fiecare grup de cazuri de cerința din SRS sau din Dosar.
 
 ## Cum se rulează

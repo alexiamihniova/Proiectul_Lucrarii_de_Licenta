@@ -123,6 +123,11 @@ Dependență nouă: `bcrypt` (ADR-0010). Recenzia finală reverifică fiecare pu
 - [ ] Ștergerea de către administrator trece prin aceeași funcție. *(testat)*
 - [ ] Exportul conține doar datele utilizatorului și nicio credențială. *(testat)* La fiecare
       set de date nou se decide dacă intră în export (RF20: materii, concepte, rezultate, progres).
+- [ ] **Obligația Segmentului 5 (Q45).** Exportul nu mai citește direct tabelele altor module:
+      `readStudyData` din `modules/auth/repository.ts` a fost înlocuită cu date cerute prin
+      serviciile modulelor `documents`, `analysis`, `content` și `mastery`. Răspunsurile date de
+      student rămân în export.
+- [ ] Exportul conține data și versiunea acordului acceptat (Q42). *(testat)*
 - [ ] Copiile de rezervă expiră în cel mult 30 de zile (RF20): se verifică procedura de backup.
 
 ## H. Roluri și autorizare (6)
@@ -163,6 +168,12 @@ Dependență nouă: `bcrypt` (ADR-0010). Recenzia finală reverifică fiecare pu
 - [ ] `/docs` (interfața OpenAPI) nu este servit în producție.
 - [ ] Antete de securitate pe frontend: `Content-Security-Policy`, `X-Content-Type-Options`,
       `Referrer-Policy` (Segmentul 6 sau serverul web).
+
+- [ ] **Înainte de pilot (Q42).** Textul acordului de la înregistrare este finalizat și include
+      informarea despre serviciul extern al modelului de limbaj (ADR-0012, constrângerea 3).
+      `GDPR_CONSENT_VERSION` din `modules/auth/types.ts` corespunde textului afișat și se
+      schimbă la fiecare modificare a lui. Conturile existente au versiunea pe care au
+      acceptat-o; nu există încă ecran de reconfirmare.
 
 ## K. Modelul de amenințări (8): un rând, o verificare
 

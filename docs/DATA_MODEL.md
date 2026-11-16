@@ -43,6 +43,7 @@ erDiagram
         varchar role "student | admin"
         varchar status "active | blocked"
         timestamptz gdpr_consent_at
+        varchar gdpr_consent_version "versiunea textului acceptat"
         int failed_login_attempts
         timestamptz locked_until
         timestamptz created_at
@@ -216,6 +217,7 @@ erDiagram
 |                  | stare (activ, blocat)          | `status` (`active`, `blocked`)       |
 |                  | data creării                   | `created_at`                         |
 |                  | acord GDPR (dată)              | `gdpr_consent_at`                    |
+|                  | — (nu este în SRS; Q42)        | `gdpr_consent_version`               |
 |                  | încercări eșuate               | `failed_login_attempts`              |
 |                  | blocat până la                 | `locked_until`                       |
 | PREFERINȚE       | temă                           | `theme` (`light`, `dark`)            |
@@ -310,6 +312,7 @@ consemnate și în OPEN_QUESTIONS.md.
 | Coloană                              | De ce există                                                                                         |
 | ------------------------------------ | ---------------------------------------------------------------------------------------------------- |
 | `tests.subject_id`                   | RF3: ștergerea materiei trebuie să șteargă testele; fără legătură directă, cascada nu le poate găsi. |
+| `users.gdpr_consent_version`         | Q42: se știe ce text de acord a acceptat fiecare utilizator; conturile dinaintea migrării au `1`.    |
 | `preferences.last_reminder_sent_on`  | RF19: „cel mult un memento pe zi” trebuie să reziste la repornirea procesului.                       |
 | `concept_progress.celebrated`        | RF17: confetti „o singură dată până când conceptul coboară sub prag”.                               |
 | `documents.deleted_at`               | Starea „Șters” din Dosar: ștergere logică, cu momentul ei.                                           |

@@ -563,5 +563,5 @@ Pentru segmentele următoare: sesiunile de test se iau din `tests/helpers/sessio
 | Parolele de peste 72 de octeți sunt respinse (Q34, 1.2)    | Limita bcrypt, impus de RNF6.                 | Modificarea SRS (formularea din 1.2) sau alt algoritm. |
 | Limita per IP este în memoria unui singur proces (Q33)     | Pilotul rulează un singur proces API.         | Contor în baza de date sau într-un depozit comun.      |
 | Conturile de administrator se blochează și se șterg doar din baza de date (Q37, 6.4) | Evită rămânerea fără administrator. | Reguli de tipul „rămâne cel puțin un administrator activ”. |
-| Acordul GDPR nu are versiune (Q42)                         | UTILIZATOR păstrează doar data.               | Versiunea textului acceptat, pe utilizator.            |
+| La schimbarea textului de acord nu se cere reconfirmarea (Q42) | Versiunea acceptată se păstrează pe utilizator, dar nu există ecran de reconfirmare. | Compararea cu `GDPR_CONSENT_VERSION` la autentificare și un ecran de acceptare. |
 | Datele trimise furnizorului modelului nu pot fi șterse (5.2) | Sunt în afara sistemului.                   | Vezi ADR-0012.                                         |

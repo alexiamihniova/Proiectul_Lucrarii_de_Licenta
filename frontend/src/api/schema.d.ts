@@ -1273,7 +1273,36 @@ export interface components {
        * @example 2026-11-12T09:30:00.000Z
        */
       exported_at: string;
-      user: components['schemas']['User'];
+      user: {
+        /**
+         * @description Numeric identifier
+         * @example 42
+         */
+        id: number;
+        /**
+         * Format: email
+         * @example student@example.com
+         */
+        email: string;
+        /** @enum {string} */
+        role: 'student' | 'admin';
+        /** @enum {string} */
+        status: 'active' | 'blocked';
+        /**
+         * Format: date-time
+         * @description ISO 8601 timestamp, UTC
+         * @example 2026-11-12T09:30:00.000Z
+         */
+        created_at: string;
+        /**
+         * Format: date-time
+         * @description When the consent to data processing was given
+         * @example 2026-11-12T09:30:00.000Z
+         */
+        gdpr_consent_at: string;
+        /** @description Version of the consent text accepted (Q42) */
+        gdpr_consent_version: string;
+      };
       preferences: components['schemas']['Preferences'];
       subjects: {
         [key: string]: unknown;

@@ -35,6 +35,7 @@ function toUser(row: UserRow): UserRecord {
     role: row.role as UserRole,
     status: row.status as UserStatus,
     gdprConsentAt: row.gdprConsentAt,
+    gdprConsentVersion: row.gdprConsentVersion,
     failedLoginAttempts: row.failedLoginAttempts,
     lockedUntil: row.lockedUntil,
     createdAt: row.createdAt,
@@ -88,6 +89,7 @@ function build(executor: Executor): AuthRepository {
             passwordHash: input.passwordHash,
             role: input.role,
             gdprConsentAt: input.gdprConsentAt,
+            gdprConsentVersion: input.gdprConsentVersion,
           })
           .onConflictDoNothing()
           .returning();
