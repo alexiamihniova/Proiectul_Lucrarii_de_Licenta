@@ -20,7 +20,7 @@ endif
 
 .DEFAULT_GOAL := help
 .PHONY: help install env up down logs ps dev dev-backend dev-worker dev-frontend db-create \
-        migrate migrate-down migrate-status seed test test-backend test-frontend test-auth lint format \
+        migrate migrate-down migrate-status seed admin test test-backend test-frontend test-auth lint format \
         typecheck openapi check-generated
 
 help: ## Show this help
@@ -82,6 +82,10 @@ migrate-status: .env ## List migrations and whether they are applied
 
 seed: .env ## Insert the default settings that are missing (idempotent)
 	$(BACKEND_RUN) run db:seed
+
+admin: .env ## Create an administrator account: make admin EMAIL=admin@example.com (asks for the password)
+	@test -n "$(EMAIL)" || (echo "usage: make admin EMAIL=admin@example.com" && exit 2)
+	$(BACKEND) run admin:create -- --email "$(EMAIL)"
 
 # --- Quality --------------------------------------------------------------------------------
 
