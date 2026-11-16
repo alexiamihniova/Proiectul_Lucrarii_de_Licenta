@@ -21,7 +21,10 @@ Referințe: `docs/design/auth.md` (secțiunile din paranteze), ADR-0005, ADR-001
 - [ ] Fiecare dependență nouă este justificată în mesajul de commit sau într-un ADR.
 - [ ] `make lint` și `make check-generated` trec; `docs/openapi.json` este la zi.
 - [ ] `npm run admin:create` există, cere parola interactiv și nu o primește ca argument.
-- [ ] `docs/OPEN_QUESTIONS.md`: Q33, Q36–Q43 au decizie sau sunt marcate explicit ca acceptate.
+- [ ] `docs/OPEN_QUESTIONS.md`: Q33, Q36–Q41 sunt confirmate (16.11.2026); Q42 este acceptată
+      ca limitare; Q43 este obligația Segmentului 2 (secțiunea G).
+- [ ] Procedura pentru conturile de administrator din `docs/design/auth.md`, 6.4, corespunde
+      scriptului `admin:create` livrat.
 
 ## B. Parole (1)
 
@@ -105,8 +108,14 @@ Referințe: `docs/design/auth.md` (secțiunile din paranteze), ADR-0005, ADR-001
 - [ ] După ștergere nu rămâne niciun rând al utilizatorului, în niciun tabel, cu excepția
       `llm_calls`, unde `user_id` și `document_id` sunt NULL. *(testat)* La fiecare tabel nou cu
       date de utilizator se verifică `ON DELETE CASCADE` și se adaugă în test.
-- [ ] Fișierele se șterg după `COMMIT`. *(testat cu un înregistrator)* **Segmentul 2** a
-      furnizat `UserFileStore` real și o curățare a fișierelor orfane (Q43).
+- [ ] Fișierele se șterg după `COMMIT`. *(testat cu un înregistrator)*
+- [ ] **Obligația Segmentului 2 (Q43).** Segmentul 2 a furnizat implementarea reală a
+      `UserFileStore.deleteAllForUser`, a legat-o în `app.ts` în locul celei implicite (care nu
+      face nimic), a adăugat un test care verifică, pe disc, că fișierele unui cont șters dispar
+      și are o curățare a fișierelor orfane. Până atunci ștergerea contului NU șterge fișiere.
+- [ ] Datele deja trimise furnizorului modelului de limbaj nu pot fi șterse la ștergerea contului
+      (vezi ADR-0012): textul acordului de la înregistrare și cel de la ștergerea contului spun
+      asta, iar aplicația nu promite nicăieri contrariul.
 - [ ] Ștergerea de către administrator trece prin aceeași funcție. *(testat)*
 - [ ] Exportul conține doar datele utilizatorului și nicio credențială. *(testat)* La fiecare
       set de date nou se decide dacă intră în export (RF20: materii, concepte, rezultate, progres).

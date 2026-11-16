@@ -26,8 +26,8 @@ configurabilă, consemnată în OPEN_QUESTIONS.
 | Încercări eșuate până la blocare         | 5 consecutive, per e-mail     | [SRS] RF2            | `AUTH_MAX_FAILED_ATTEMPTS`          |
 | Durata blocării                          | 15 minute                     | [SRS] RF2, C-17      | `AUTH_LOCK_MINUTES`                 |
 | Valabilitatea linkului de resetare       | 1 oră, o singură folosire     | [SRS] RF2, C-24      | `PASSWORD_RESET_TTL_MINUTES`        |
-| Cereri pe rutele publice de cont         | 20 pe minut per IP            | [propus] Q33         | `RATE_LIMIT_AUTH_MAX`, `RATE_LIMIT_AUTH_WINDOW_SECONDS` |
-| Cereri de resetare                       | 3 pe oră per cont             | [propus] Q33         | `PASSWORD_RESET_MAX_PER_HOUR`       |
+| Cereri pe rutele publice de cont         | 20 pe minut per IP            | [propus, confirmat] Q33 | `RATE_LIMIT_AUTH_MAX`, `RATE_LIMIT_AUTH_WINDOW_SECONDS` |
+| Cereri de resetare                       | 3 pe oră per cont             | [propus, confirmat] Q33 | `PASSWORD_RESET_MAX_PER_HOUR`       |
 | Jeton de resetare                        | 32 de octeți aleatori         | [propus]             | fix                                 |
 | Preferințe implicite                     | temă deschisă, mascotă activă, 18:00, „în aplicație”, 20 | [propus] Q5 | valorile `DEFAULT` din tabel |
 | Obiectiv zilnic                          | 5–100                         | [SRS] RF18           | fix                                 |
@@ -64,6 +64,19 @@ Nu există listă de parole interzise și nici reguli de compoziție în plus fa
 Regula de 72 de octeți există fiindcă bcrypt ignoră restul: fără ea, două parole lungi cu același
 început ar fi echivalente. Mesajul către utilizator: „Parola este prea lungă: poate avea cel mult
 72 de octeți (literele cu diacritice ocupă câte 2).”
+
+**Constrângere tehnică asumată față de SRS.** RF1 acceptă orice parolă de 8–64 de caractere cu o
+literă și o cifră. Fiindcă RNF6 impune bcrypt, aplicația respinge o parte dintre ele: o literă cu
+diacritice ocupă 2 octeți, iar un emoji 4, deci o parolă de 64 de caractere poate avea până la
+256 de octeți. Sunt respinse, de exemplu, parolele cu peste 36 de litere cu diacritice sau cu
+peste 18 emoji; parolele scrise doar cu litere fără diacritice, cifre și semne ASCII nu sunt
+afectate, oricare le-ar fi lungimea până la 64. Alternativa (hash SHA-256 înainte de bcrypt) ar
+respecta litera RF1, dar ar însemna o schemă proprie peste cea numită în RNF6; am ales să
+respingem explicit, cu un mesaj care spune limita.
+
+Formulare propusă pentru RF1 în SRS: „Parola are 8–64 de caractere, conține cel puțin o literă
+și o cifră și ocupă cel mult 72 de octeți în codificarea UTF-8 (limita algoritmului bcrypt,
+RNF6); o parolă mai lungă în octeți este respinsă cu un mesaj care indică limita.”
 
 ### 1.3 Stocarea (RNF6, ADR-0010)
 
@@ -251,6 +264,10 @@ administrator răspunde M03 la parolă greșită: blocarea se află numai cu par
 - Contorul per IP este în memoria procesului și ține de instanța aplicației (nu este global în
   modul), ca testele să poată porni aplicații cu limite diferite. Adresa IP este cea a
   conexiunii; antetul `X-Forwarded-For` se folosește numai cu `TRUST_PROXY=true`.
+- **La demonstrație**, mai mulți utilizatori din aceeași rețea (sală, Wi-Fi-ul facultății) ies
+  pe internet cu aceeași adresă IP publică și împart cele 20 de cereri pe minut. Limita se
+  mărește din configurare (`RATE_LIMIT_AUTH_MAX`, de exemplu 200), fără modificări de cod;
+  blocarea per cont (3.2) rămâne neschimbată.
 
 ### 3.4 Anti-enumerarea
 
@@ -337,6 +354,12 @@ ca unul necunoscut. Tabelul este în modulul `auth`, deci și sarcina este a lui
 | Fișierele încărcate                                                     | șterse de pe disc după `COMMIT`    |
 | Copiile de rezervă                                                      | expiră în cel mult 30 de zile (operațional) |
 | Liniile de jurnal                                                       | rămân; conțin doar identificatorul |
+| Pasajele deja trimise furnizorului modelului de limbaj                  | **nu pot fi șterse** de aplicație (vezi mai jos) |
+
+Datele deja trimise furnizorului modelului de limbaj (pasaje din documente, răspunsuri deschise)
+nu pot fi șterse la ștergerea contului: aplicația nu are control asupra copiilor păstrate de
+furnizor. Ce se trimite și în ce condiții le păstrează furnizorul este subiectul ADR-0012;
+studentul trebuie informat despre asta în textul acordului de la înregistrare (RF1).
 
 Ordinea contează: întâi baza de date, apoi fișierele. Dacă procesul cade între ele, rămân fișiere
 orfane, care nu mai pot fi atinse prin aplicație; invers, ar rămâne înregistrări către fișiere
@@ -411,6 +434,23 @@ Trei mecanisme care se sprijină reciproc:
 
 Rutele încă neimplementate (`501`) sunt sărite automat și intră în verificare în ziua în care
 segmentul lor le implementează.
+
+### 6.4 Conturile de administrator (Q21, Q37)
+
+Prin API nu se poate crea, bloca sau șterge un cont de administrator. Gestionarea lor se face de
+pe server, de către cine are acces la mașină și la baza de date:
+
+| Operație                 | Cum                                                                                   |
+| ------------------------ | ------------------------------------------------------------------------------------- |
+| Creare (și contul inițial, SRS 2.1.8) | `npm --prefix backend run admin:create -- --email <adresă>`; parola se cere interactiv, nu ca argument, și respectă politica din 1.2. Se poate rula de mai multe ori, pentru mai mulți administratori. O adresă care are deja cont este refuzată. Eveniment de audit: `admin.created`. |
+| Schimbarea parolei       | Resetarea prin e-mail (4), ca pentru orice cont.                                      |
+| Blocare sau ștergere     | Direct în baza de date: `UPDATE users SET status = 'blocked' WHERE id = …` sau `DELETE FROM users WHERE id = …`. Efectul este imediat, fiindcă utilizatorul se citește la fiecare cerere (2.3). |
+| Retrogradare la student  | Nu există: un cont de administrator nu are date de studiu. Se șterge și se creează un cont nou. |
+
+`make seed` scrie doar setările implicite; nu creează conturi, ca să nu existe o parolă
+implicită în cod sau în `.env`. Scriptul `admin:create` este scris de Segmentul 1B (9, punctul 5)
+peste `AuthService.createAdmin`, a cărui comportare este deja fixată de
+`tests/auth/admin-accounts.test.ts`.
 
 ## 7. Jurnalizare
 
@@ -506,3 +546,17 @@ verificarea adresei de e-mail la înregistrare (SRS nu o cere), parole compromis
 Pentru segmentele următoare: sesiunile de test se iau din `tests/helpers/session.ts`
 (`registerStudent`, `registerAdmin`), iar `describeOwnership` din
 `tests/helpers/authorization.ts` verifică automat rutele noi.
+
+## 10. Limitări și dezvoltări viitoare
+
+| Limitare                                                   | De ce                                         | Ce ar cere                                             |
+| ---------------------------------------------------------- | --------------------------------------------- | ------------------------------------------------------ |
+| Parola nu se poate schimba din cont; doar prin resetarea prin e-mail (Q40) | Nu este în SRS (RF2, RF18–RF20).    | O rută care cere parola curentă; sesiunile se invalidează prin amprentă (ADR-0011). |
+| Adresa de e-mail nu se poate schimba (Q40)                 | Nu este în SRS.                               | Confirmarea noii adrese printr-un link, înainte de înlocuire. |
+| Un jeton furat rămâne valid după deconectare, cel mult 24 h (Q22) | Sesiune fără stare pe server.          | Coloana `users.session_version` (ADR-0011).            |
+| Sesiunea nu se prelungește la activitate (Q41)             | Citirea literală a RF2.                       | Reemiterea jetonului, cu o durată maximă absolută.     |
+| Parolele de peste 72 de octeți sunt respinse (Q34, 1.2)    | Limita bcrypt, impus de RNF6.                 | Modificarea SRS (formularea din 1.2) sau alt algoritm. |
+| Limita per IP este în memoria unui singur proces (Q33)     | Pilotul rulează un singur proces API.         | Contor în baza de date sau într-un depozit comun.      |
+| Conturile de administrator se blochează și se șterg doar din baza de date (Q37, 6.4) | Evită rămânerea fără administrator. | Reguli de tipul „rămâne cel puțin un administrator activ”. |
+| Acordul GDPR nu are versiune (Q42)                         | UTILIZATOR păstrează doar data.               | Versiunea textului acceptat, pe utilizator.            |
+| Datele trimise furnizorului modelului nu pot fi șterse (5.2) | Sunt în afara sistemului.                   | Vezi ADR-0012.                                         |
