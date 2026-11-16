@@ -358,7 +358,7 @@ ca unul necunoscut. Tabelul este în modulul `auth`, deci și sarcina este a lui
 
 Datele deja trimise furnizorului modelului de limbaj (pasaje din documente, răspunsuri deschise)
 nu pot fi șterse la ștergerea contului: aplicația nu are control asupra copiilor păstrate de
-furnizor. Ce se trimite și în ce condiții le păstrează furnizorul este subiectul ADR-0012;
+furnizor. Ce se trimite și în ce condiții le păstrează furnizorul este subiectul [ADR-0012](../ADR/0012-furnizor-llm.md), constrângerea 3;
 studentul trebuie informat despre asta în textul acordului de la înregistrare (RF1).
 
 Ordinea contează: întâi baza de date, apoi fișierele. Dacă procesul cade între ele, rămân fișiere

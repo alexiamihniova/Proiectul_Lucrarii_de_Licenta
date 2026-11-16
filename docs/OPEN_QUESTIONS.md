@@ -57,7 +57,7 @@ dacă decizia schimbă schema sau contractul, segmentul respectiv face migrarea 
 | Q41 | Sesiunea nu se prelungește la activitate                       | 1       | Confirmată |
 | Q42 | Acordul GDPR: fără versiune și fără retragere                  | 1       | Deschisă   |
 | Q43 | Ștergerea fișierelor la ștergerea contului, înainte de Segmentul 2 | 1, 2 | Amânată (2) |
-| Q44 | Cota zilnică de apeluri către model per utilizator             | 3, 4    | Deschisă   |
+| Q44 | Cota zilnică de apeluri către model per utilizator             | 3, 4    | Confirmată |
 
 ---
 
@@ -426,6 +426,22 @@ dacă decizia schimbă schema sau contractul, segmentul respectiv face migrarea 
 - **Acum.** Portul este definit în `backend/src/modules/auth/types.ts`.
 
 ### Q44. Cota zilnică de apeluri către model per utilizator
+
+- **Decizie (16.11.2026).** Cotele se numără în apeluri către model: buget zilnic per proiect de
+  80 % din RPD-ul modelului și cotă per utilizator de 60 de apeluri pe zi, ambele configurabile
+  (ADR-0012). Abaterea de la SRS 3.1.3 este acceptată: generarea este grupată per tip de
+  conținut și validată per concept; detaliile rămân pentru Segmentul 4. Limita de 10 încărcări
+  pe zi din SRS rămâne separată.
+- **Formulare propusă pentru SRS 3.1.3**, Tabelul 3.3, rândul „Generare materiale (RF10, RF12)”:
+  - Intrare: „Lista conceptelor alese (1–20), fiecare cu pasajele sale (id, text); tipul;
+    cantitatea pentru fiecare concept (1–20); dificultatea.”
+  - Ieșire: „Listă de materiale, fiecare cu identificatorul conceptului: tip, enunț, răspuns,
+    explicație, variante (grilă: 4), id pasaj, citat.”
+  - Interval, timp: „Timeout 60 s; ieșirea se validează separat pentru fiecare concept:
+    materialele invalide ale unui concept se resping fără a le afecta pe ale celorlalte.”
+  - După tabel: „Numărul de apeluri către model este limitat zilnic, per utilizator și pe
+    întreaga aplicație; limitele sunt configurabile. La atingerea lor, sistemul afișează un mesaj
+    care spune când se poate relua generarea.”
 
 - **Lipsă.** SRS limitează doar încărcările (implicit 10 pe zi per student, configurabil 1–50).
   Nu există limită pentru generare, deși UC-06 o presupune (Q32), iar cota gratuită a

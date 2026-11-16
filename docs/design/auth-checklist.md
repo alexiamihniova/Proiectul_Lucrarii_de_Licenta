@@ -114,7 +114,7 @@ Referințe: `docs/design/auth.md` (secțiunile din paranteze), ADR-0005, ADR-001
       face nimic), a adăugat un test care verifică, pe disc, că fișierele unui cont șters dispar
       și are o curățare a fișierelor orfane. Până atunci ștergerea contului NU șterge fișiere.
 - [ ] Datele deja trimise furnizorului modelului de limbaj nu pot fi șterse la ștergerea contului
-      (vezi ADR-0012): textul acordului de la înregistrare și cel de la ștergerea contului spun
+      ([ADR-0012](../ADR/0012-furnizor-llm.md), constrângerea 3): textul acordului de la înregistrare și cel de la ștergerea contului spun
       asta, iar aplicația nu promite nicăieri contrariul.
 - [ ] Ștergerea de către administrator trece prin aceeași funcție. *(testat)*
 - [ ] Exportul conține doar datele utilizatorului și nicio credențială. *(testat)* La fiecare

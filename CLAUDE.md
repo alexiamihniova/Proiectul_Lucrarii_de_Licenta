@@ -169,6 +169,10 @@ Allowed dependency direction between modules (no cycles):
 - **Document states** — queued, processing, ready, error, deleted; transitions in
   `modules/documents/state-machine.ts`, also enforced by a database trigger.
 
+- LLM: Gemini API, plan gratuit — vezi docs/ADR/0012-furnizor-llm.md. Orice segment care atinge
+  generarea respectă constrângerile de acolo (cotă comună mică, 429, fără date personale în
+  prompturi, grupare, generare la cerere, rezervă clasică).
+
 ## Before starting a segment
 
 1. Read `docs/ARCHITECTURE.md` and the ADRs.
