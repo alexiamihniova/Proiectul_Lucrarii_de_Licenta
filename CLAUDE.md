@@ -9,9 +9,10 @@ A student uploads documents (PDF, DOCX, TXT); one language model, called only fr
 extracts concepts and generates materials and tests whose source is verified; the app computes
 mastery per concept and schedules reviews with SM-2.
 
-The project is built in segments by different sessions. **Segment 0 (foundation) is done**: schema,
-API contracts (stubs answering 501), config, `LLMClient` interface, dev infrastructure. Your job is
-one of Segments 1–8.
+The project is built in segments by different sessions. **Segment 0 (foundation) and Segment 1
+(accounts and access) are done**: schema, API contracts (stubs answering 501 outside `auth`),
+config, `LLMClient` interface, dev infrastructure, sessions and roles. Your job is one of
+Segments 2–8.
 
 Specifications (Romanian) are the source of truth for behaviour:
 
@@ -35,6 +36,7 @@ Run from the repository root. `make help` lists everything.
 | Run everything in Docker               | `make up` / `make down`                   |
 | Apply / revert / list migrations       | `make migrate` / `make migrate-down` / `make migrate-status` |
 | Seed default settings                  | `make seed`                               |
+| Create an administrator account        | `make admin EMAIL=<address>`              |
 | All tests                              | `make test`                               |
 | One backend test file                  | `npm --prefix backend test -- tests/config.test.ts` |
 | Lint + format check + typecheck        | `make lint`                               |
@@ -44,13 +46,6 @@ Run from the repository root. `make help` lists everything.
 | Check generated files are current      | `make check-generated`                    |
 
 Before you say a task is done: `make lint && make test && make check-generated` must pass.
-
-**Temporary, until Segment 1B is done.** The account and access specification in
-`backend/tests/auth/` fails against the 501 stubs, so it is excluded from `make test` and runs
-with `make test-auth` (CI job `auth-spec`, non-blocking). **Segment 1B must remove the
-exclusion**: delete `backend/vitest.auth.config.ts`, the `test:auth` script, the `test-auth`
-make target, the `exclude` line in `backend/vitest.config.ts` and the `auth-spec` CI job, then
-delete this paragraph. When 1B is finished, `make test` includes the auth tests and passes.
 
 Backend tests need a PostgreSQL database at `TEST_DATABASE_URL`; they drop and recreate every
 table in it. Without Docker, use a local PostgreSQL (`make db-create`); the Compose stack is
@@ -146,7 +141,7 @@ segment implements and what it must export for the others.
 | # | Segment | Module(s) | In scope | Requirements |
 | - | ------- | --------- | -------- | ------------ |
 | 0 | Foundation (done) | `core`, `db`, all stubs | Schema, contracts, config, `LLMClient` interface and fake, infrastructure | — |
-| 1 | Accounts (1A design and tests: done; 1B implementation: next) | `auth` | Registration, login, logout, session JWT in httpOnly cookie, the global auth hook and `request.user`, lock after 5 failures, password reset tokens, preferences, data export, account deletion, initial admin. Specification: `docs/design/auth.md`, `docs/design/auth-tests.md`, `backend/tests/auth/`; review list: `docs/design/auth-checklist.md` | RF1, RF2, RF18, RF20; C-11, C-12, C-17, C-23, C-24; UC-01, 02, 03, 11, 12 |
+| 1 | Accounts (done) | `auth` | Registration, login, logout, session JWT in httpOnly cookie, the global auth hook and `request.user`, lock after 5 failures, password reset tokens, preferences, data export, account deletion, initial admin. Specification: `docs/design/auth.md`, `docs/design/auth-tests.md`, `backend/tests/auth/`; review list: `docs/design/auth-checklist.md` | RF1, RF2, RF18, RF20; C-11, C-12, C-17, C-23, C-24; UC-01, 02, 03, 11, 12 |
 | 2 | Document processing | `documents` | Subjects CRUD, upload validation and storage, daily quota, text extraction and cleaning, passages, document state machine, soft delete, the worker task that claims queued documents | RF3–RF6; C-02, C-03, C-07, C-08, C-09, C-10; UC-04 |
 | 3 | LLM core | `llm`, `analysis` | Real `LLMClient`, retries and `llm_calls` journal, concept extraction, **source verification**, concept management | RF7–RF9, RF23 (journal writes); C-06, C-14, C-22; UC-05, UC-17 |
 | 4 | Materials and tests | `content` | Material generation with rules R1–R5, tests (configure, answer, evaluate, result), reports | RF10–RF13; C-04, C-05, C-13, C-15, C-19; UC-06, 07, 08 |
