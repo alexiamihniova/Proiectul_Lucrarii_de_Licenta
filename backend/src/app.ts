@@ -21,6 +21,7 @@ import {
 import type { SendPasswordResetEmail, UserFileStore } from './modules/auth/service.js';
 import { contentRouter } from './modules/content/router.js';
 import { documentsRouter } from './modules/documents/router.js';
+import type { AnalyseDocument, TextExtractor } from './modules/documents/service.js';
 import { createLlmClient } from './modules/llm/service.js';
 import type { LLMClient } from './modules/llm/service.js';
 import { masteryRouter } from './modules/mastery/router.js';
@@ -47,6 +48,13 @@ export interface AppDependencies {
   sendPasswordResetEmail?: SendPasswordResetEmail;
   /** Removes a deleted account's uploaded files. Segment 2 provides the real one (Q43). */
   userFiles?: UserFileStore;
+  /**
+   * Concept extraction for a stored document (Segment 3). Defaults to an analysis that does
+   * nothing. Segment 2B wires it into the documents service; tests pass a controllable fake.
+   */
+  analyseDocument?: AnalyseDocument;
+  /** Reads the text of uploaded files. Defaults to the extractor for PDF, DOCX and TXT. */
+  textExtractor?: TextExtractor;
   /** Receives every log line; lets tests check what is and is not logged. */
   logStream?: LogStream;
 }

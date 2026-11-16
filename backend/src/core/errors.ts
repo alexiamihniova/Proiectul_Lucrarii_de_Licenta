@@ -85,7 +85,7 @@ export const ERRORS = {
     srs: 'M04',
     message: 'Formatul fișierului nu este acceptat. Încarcă un PDF, DOCX sau TXT.',
   },
-  /** details = { limit_mb, limit_pages } */
+  /** details = { exceeded: 'size' | 'pages', limit_mb, limit_pages } */
   FILE_TOO_LARGE: {
     status: 413,
     srs: 'M05',
@@ -105,6 +105,11 @@ export const ERRORS = {
   },
   /** C-09 */
   DOCUMENT_ALREADY_PROCESSING: { status: 409, message: 'Documentul este deja în procesare.' },
+  /** T2, PE: stored in documents.error_reason when the analysis exceeds the time limit. */
+  DOCUMENT_PROCESSING_TIMEOUT: {
+    status: 504,
+    message: 'Analiza documentului a durat prea mult. Încearcă reprocesarea.',
+  },
   DOCUMENT_NOT_READY: {
     status: 409,
     message: 'Documentul nu este încă analizat complet.',

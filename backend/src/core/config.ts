@@ -69,6 +69,8 @@ const envSchema = z
     UPLOAD_MAX_PAGES: int(1, 1000).default(100),
     DEFAULT_MAX_FILE_SIZE_MB: int(1, 50).default(20),
     DEFAULT_UPLOADS_PER_DAY: int(1, 50).default(10),
+    DOCUMENT_PROCESSING_TIMEOUT_SECONDS: int(1, 600).default(60),
+    DELETED_DOCUMENT_RETENTION_HOURS: int(1, 720).default(48),
 
     WORKER_POLL_INTERVAL_MS: int(100, 60_000).default(1000),
   })
@@ -148,6 +150,12 @@ export interface Config {
     defaultMaxFileSizeMb: number;
     defaultUploadsPerDay: number;
   };
+  documents: {
+    /** T2, event PE: a document still `processing` after this long becomes `error`. */
+    processingTimeoutSeconds: number;
+    /** Q12: soft-deleted rows are removed for good after this long. */
+    deletedRetentionHours: number;
+  };
   worker: { pollIntervalMs: number };
 }
 
@@ -199,6 +207,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
       maxPages: e.UPLOAD_MAX_PAGES,
       defaultMaxFileSizeMb: e.DEFAULT_MAX_FILE_SIZE_MB,
       defaultUploadsPerDay: e.DEFAULT_UPLOADS_PER_DAY,
+    },
+    documents: {
+      processingTimeoutSeconds: e.DOCUMENT_PROCESSING_TIMEOUT_SECONDS,
+      deletedRetentionHours: e.DELETED_DOCUMENT_RETENTION_HOURS,
     },
     auth: {
       bcryptCost: e.BCRYPT_COST,
