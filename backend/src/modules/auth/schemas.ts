@@ -102,7 +102,10 @@ export const ExportQuery = z.object({
 export const AccountExport = z
   .object({
     exported_at: Timestamp,
-    user: User,
+    user: User.extend({
+      gdpr_consent_at: Timestamp.describe('When the consent to data processing was given'),
+      gdpr_consent_version: z.string().describe('Version of the consent text accepted (Q42)'),
+    }),
     preferences: Preferences,
     subjects: z.array(z.record(z.string(), z.unknown())),
     concepts: z.array(z.record(z.string(), z.unknown())),

@@ -23,6 +23,8 @@ export const users = pgTable(
     role: varchar({ length: 20 }).notNull().default('student'),
     status: varchar({ length: 20 }).notNull().default('active'),
     gdprConsentAt: timestamptz().notNull(),
+    /** Which version of the consent text was accepted (Q42). Not in the SRS; see DATA_MODEL.md. */
+    gdprConsentVersion: varchar({ length: 20 }).notNull(),
     failedLoginAttempts: integer().notNull().default(0),
     lockedUntil: timestamptz(),
     createdAt: createdAt(),

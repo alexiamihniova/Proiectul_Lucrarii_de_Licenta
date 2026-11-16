@@ -56,6 +56,7 @@ export function factories(pool: pg.Pool) {
           email: `student${counter}@example.com`,
           password_hash: 'hash',
           gdpr_consent_at: new Date(),
+          gdpr_consent_version: '1',
           ...overrides,
         }),
       );

@@ -84,6 +84,12 @@ export const PASSWORD_FINGERPRINT_BYTES = 16;
 /** bcrypt ignores input after 72 bytes (ADR-0010). */
 export const PASSWORD_MAX_BYTES = 72;
 export const RESET_TOKEN_BYTES = 32;
+/**
+ * Version of the consent text shown at registration (RF1, Q42), stored on the user. Change it
+ * whenever the text changes, so that it is known who accepted which text. The text itself
+ * belongs to the frontend (Segment 6) and must be final before the pilot.
+ */
+export const GDPR_CONSENT_VERSION = '1';
 /** Frontend path of the reset screen; the token goes in the `token` query parameter. */
 export const RESET_PASSWORD_PATH = '/reset-password';
 
@@ -112,6 +118,7 @@ export interface UserRecord {
   role: UserRole;
   status: UserStatus;
   gdprConsentAt: Date;
+  gdprConsentVersion: string;
   failedLoginAttempts: number;
   lockedUntil: Date | null;
   createdAt: Date;
@@ -148,6 +155,7 @@ export interface AuthRepository {
     passwordHash: string;
     role: UserRole;
     gdprConsentAt: Date;
+    gdprConsentVersion: string;
   }): Promise<UserRecord | null>;
   /** Atomic `failed_login_attempts + 1`; returns the new count. */
   incrementFailedLogins(userId: number): Promise<number>;

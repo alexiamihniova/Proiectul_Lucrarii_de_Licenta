@@ -55,9 +55,10 @@ dacă decizia schimbă schema sau contractul, segmentul respectiv face migrarea 
 | Q39 | Mai multe jetoane de resetare valabile simultan                | 1       | Confirmată |
 | Q40 | Schimbarea parolei și a e-mailului din cont nu există în SRS   | 1       | Confirmată |
 | Q41 | Sesiunea nu se prelungește la activitate                       | 1       | Confirmată |
-| Q42 | Acordul GDPR: fără versiune și fără retragere                  | 1       | Deschisă   |
+| Q42 | Acordul GDPR: fără versiune și fără retragere                  | 1       | Confirmată |
 | Q43 | Ștergerea fișierelor la ștergerea contului, înainte de Segmentul 2 | 1, 2 | Amânată (2) |
 | Q44 | Cota zilnică de apeluri către model per utilizator             | 3, 4    | Confirmată |
+| Q45 | Exportul citește direct tabelele altor module                  | 1, 2–5  | Confirmată |
 
 ---
 
@@ -249,7 +250,9 @@ dacă decizia schimbă schema sau contractul, segmentul respectiv face migrarea 
 - **Lipsă.** SRS 2.1.8 cere un cont inițial de administrator, fără să spună cum se creează.
 - **Propunere.** O comandă a Segmentului 1 (`npm run admin:create -- --email …`), care cere
   parola interactiv; fără valori implicite în cod sau în `.env`.
-- **Acum.** Nu există. `make seed` scrie doar setările.
+- **Acum (Segmentul 1B).** `npm --prefix backend run admin:create -- --email <adresă>` sau
+  `make admin EMAIL=<adresă>`; scriptul este `backend/src/scripts/create-admin.ts`. `make seed`
+  scrie doar setările.
 
 ### Q22. Deconectarea nu revocă jetonul JWT
 
@@ -405,6 +408,12 @@ dacă decizia schimbă schema sau contractul, segmentul respectiv face migrarea 
 
 ### Q42. Acordul GDPR: fără versiune și fără retragere
 
+- **Decizie (16.11.2026).** Versiunea textului de acord se păstrează pe utilizator: coloana
+  `users.gdpr_consent_version` (migrarea `0001_user_consent_version`), completată la
+  înregistrare din `GDPR_CONSENT_VERSION` și inclusă în export. Fără ecran de reconfirmare
+  deocamdată. Textul acordului, inclusiv informarea despre serviciul extern al modelului de
+  limbaj (ADR-0012), trebuie finalizat înainte de pilot (lista de verificare, secțiunea J).
+
 - **Lipsă.** UTILIZATOR păstrează doar data acordului. Nu există versiunea textului acceptat și
   nici retragerea acordului altfel decât prin ștergerea contului.
 - **Propunere.** Suficient pentru pilot: retragerea acordului = ștergerea contului (RF20).
@@ -469,6 +478,26 @@ dacă decizia schimbă schema sau contractul, segmentul respectiv face migrarea 
   buget zilnic per proiect, sub cota furnizorului, cu mesaj clar la epuizare. (3) Ambele în
   CONFIGURARE. (4) Limita de încărcări din SRS rămâne separată.
 - **Acum.** Nimic implementat; se decide înainte de Segmentele 3 și 4.
+
+### Q45. Exportul citește direct tabelele altor module
+
+- **Decizie (16.11.2026).** Citirea directă rămâne până la Segmentul 5, care are obligația de a
+  trece exportul pe serviciile modulelor (lista de verificare, secțiunea G). Răspunsurile date
+  de student rămân în export.
+
+- **Contradicție.** Designul (`docs/design/auth.md`, 5.4) spune că datele celorlalte module se cer
+  prin serviciile lor, iar regula modulelor cere același lucru. Exportul (RF20) trebuie însă să
+  conțină materii, concepte, rezultate și progres de acum (testele din `tests/auth/` o verifică),
+  iar serviciile modulelor `documents`, `analysis`, `content` și `mastery` nu există până la
+  Segmentele 2–5. Interfețele Segmentului 1A nu au un port pentru aceste date.
+- **Ce am făcut (Segmentul 1B).** `readStudyData` din `modules/auth/repository.ts` citește cele
+  cinci seturi direct din tabele: numai citire, listă fixă de coloane, fiecare interogare
+  filtrată după utilizatorul curent. Nu exportă textul documentelor și nici materialele generate.
+- **Propunere.** Rămâne așa până la Segmentul 5. Atunci fie fiecare modul oferă o funcție
+  `exportForUser(actor)` pe care `app.ts` o dă serviciului `auth` (ca la `UserFileStore`), fie se
+  acceptă definitiv excepția, fiindcă exportul este prin natura lui transversal.
+- **De hotărât și:** dacă exportul include răspunsurile date de student (`given_answer`); acum
+  le include, ca parte din „rezultate”.
 
 ---
 

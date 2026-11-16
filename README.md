@@ -5,10 +5,11 @@ licență, UTM). Studentul încarcă documente de curs (PDF, DOCX, TXT); un sing
 apelat doar de pe server, extrage concepte și generează materiale și teste cu sursă verificată;
 aplicația calculează stăpânirea pe concept și programează recapitularea cu SM-2.
 
-**Starea curentă: Segmentul 0 (fundația).** Există schema bazei de date, contractele API pentru
-toate cazurile de utilizare (rutele răspund `501` până la implementare), configurarea, interfața
-către modelul de limbaj și infrastructura de dezvoltare. Logica aplicației se construiește în
-Segmentele 1–8.
+**Starea curentă: Segmentele 0 (fundația) și 1 (conturi și acces).** Există schema bazei de date,
+contractele API pentru toate cazurile de utilizare, configurarea, interfața către modelul de
+limbaj, infrastructura de dezvoltare și conturile: înregistrare, autentificare, sesiune,
+resetarea parolei, preferințe, export și ștergerea contului. Celelalte rute cer o sesiune și
+răspund `501` până la implementare, în Segmentele 2–8.
 
 ## Documentație
 
@@ -83,8 +84,17 @@ curl http://localhost:3001/health
 curl http://localhost:5173/api/v1/health      # același răspuns, prin proxy-ul frontendului
 
 curl http://localhost:3001/api/v1/subjects
-# {"error":{"code":"NOT_IMPLEMENTED","message":"Funcționalitatea nu este încă implementată."}}
+# {"error":{"code":"UNAUTHENTICATED","message":"…"}}   (fără sesiune; cu sesiune: NOT_IMPLEMENTED)
 ```
+
+Primul cont de administrator se creează de pe server (studenții se înregistrează singuri):
+
+```sh
+make admin EMAIL=admin@example.com    # cere parola de două ori, fără să o afișeze
+```
+
+Până la Segmentul 8 nu se trimit e-mailuri: în dezvoltare, legătura de resetare a parolei apare
+în jurnalul backendului.
 
 ## Comenzi
 
@@ -98,8 +108,8 @@ curl http://localhost:3001/api/v1/subjects
 | `make migrate-down`    | Anulează ultima migrare                                                       |
 | `make migrate-status`  | Arată migrările și dacă sunt aplicate                                         |
 | `make seed`            | Scrie setările implicite care lipsesc                                         |
+| `make admin EMAIL=…`   | Creează un cont de administrator; parola se cere interactiv                   |
 | `make test`            | Testele backend (au nevoie de `TEST_DATABASE_URL`) și frontend                |
-| `make test-auth`       | Temporar: specificația de conturi, care pică până la Segmentul 1B             |
 | `make lint`            | ESLint, Prettier și `tsc --noEmit`, backend și frontend                       |
 | `make format`          | Rescrie fișierele cu Prettier                                                 |
 | `make openapi`         | Regenerează `docs/openapi.json` și tipurile frontendului                      |

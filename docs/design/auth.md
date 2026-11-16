@@ -383,7 +383,8 @@ rutele sunt ale Segmentului 7. Efectul ștergerii este același ca la 5.1, făr�
 - `format=csv`: `200`, `application/zip`, cu fișierele `subjects.csv`, `concepts.csv`,
   `tests.csv`, `answers.csv`, `progress.csv`; `filename="recap-export-AAAA-LL-ZZ.zip"`.
 - Conține numai datele utilizatorului curent. Nu conține `password_hash`, jetoane sau textul
-  documentelor. Datele celorlalte module se cer prin serviciile lor.
+  documentelor. Datele celorlalte module se cer prin serviciile lor; până când acestea există,
+  exportul le citește direct, numai în citire (Q45).
 
 ## 6. Roluri și autorizare (RNF7, SRS 3.7.2)
 
@@ -442,15 +443,14 @@ pe server, de către cine are acces la mașină și la baza de date:
 
 | Operație                 | Cum                                                                                   |
 | ------------------------ | ------------------------------------------------------------------------------------- |
-| Creare (și contul inițial, SRS 2.1.8) | `npm --prefix backend run admin:create -- --email <adresă>`; parola se cere interactiv, nu ca argument, și respectă politica din 1.2. Se poate rula de mai multe ori, pentru mai mulți administratori. O adresă care are deja cont este refuzată. Eveniment de audit: `admin.created`. |
+| Creare (și contul inițial, SRS 2.1.8) | `make admin EMAIL=<adresă>` sau `npm --prefix backend run admin:create -- --email <adresă>`; parola se poate da și la intrarea standard, pentru rulare neasistată; parola se cere interactiv, nu ca argument, și respectă politica din 1.2. Se poate rula de mai multe ori, pentru mai mulți administratori. O adresă care are deja cont este refuzată. Eveniment de audit: `admin.created`. |
 | Schimbarea parolei       | Resetarea prin e-mail (4), ca pentru orice cont.                                      |
 | Blocare sau ștergere     | Direct în baza de date: `UPDATE users SET status = 'blocked' WHERE id = …` sau `DELETE FROM users WHERE id = …`. Efectul este imediat, fiindcă utilizatorul se citește la fiecare cerere (2.3). |
 | Retrogradare la student  | Nu există: un cont de administrator nu are date de studiu. Se șterge și se creează un cont nou. |
 
 `make seed` scrie doar setările implicite; nu creează conturi, ca să nu existe o parolă
-implicită în cod sau în `.env`. Scriptul `admin:create` este scris de Segmentul 1B (9, punctul 5)
-peste `AuthService.createAdmin`, a cărui comportare este deja fixată de
-`tests/auth/admin-accounts.test.ts`.
+implicită în cod sau în `.env`. Scriptul este `backend/src/scripts/create-admin.ts`, peste
+`AuthService.createAdmin`, a cărui comportare este fixată de `tests/auth/admin-accounts.test.ts`.
 
 ## 7. Jurnalizare
 
@@ -516,6 +516,11 @@ verificarea adresei de e-mail la înregistrare (SRS nu o cere), parole compromis
 
 ## 9. Ce are de făcut Segmentul 1B
 
+**Stare (16.11.2026): făcut.** Lista rămâne ca evidență. Abateri: scriptul este în
+`src/scripts/create-admin.ts` (lângă celelalte scripturi), jetonul și cookie-ul sunt scrise cu
+`node:crypto`, fără `@fastify/cookie` și fără bibliotecă JWT, iar exportul citește direct
+tabelele altor module (Q45).
+
 1. Dependențe, cu justificare în commit: `bcrypt` (RNF6; nativ, vezi ADR-0010) și, dacă se
    aleg, `@fastify/cookie` și o bibliotecă JWT (`jose`). Formatul cookie-ului și al jetonului
    este fixat aici și verificat de teste, deci biblioteca este un detaliu. Arhiva ZIP a
@@ -558,5 +563,5 @@ Pentru segmentele următoare: sesiunile de test se iau din `tests/helpers/sessio
 | Parolele de peste 72 de octeți sunt respinse (Q34, 1.2)    | Limita bcrypt, impus de RNF6.                 | Modificarea SRS (formularea din 1.2) sau alt algoritm. |
 | Limita per IP este în memoria unui singur proces (Q33)     | Pilotul rulează un singur proces API.         | Contor în baza de date sau într-un depozit comun.      |
 | Conturile de administrator se blochează și se șterg doar din baza de date (Q37, 6.4) | Evită rămânerea fără administrator. | Reguli de tipul „rămâne cel puțin un administrator activ”. |
-| Acordul GDPR nu are versiune (Q42)                         | UTILIZATOR păstrează doar data.               | Versiunea textului acceptat, pe utilizator.            |
+| La schimbarea textului de acord nu se cere reconfirmarea (Q42) | Versiunea acceptată se păstrează pe utilizator, dar nu există ecran de reconfirmare. | Compararea cu `GDPR_CONSENT_VERSION` la autentificare și un ecran de acceptare. |
 | Datele trimise furnizorului modelului nu pot fi șterse (5.2) | Sunt în afara sistemului.                   | Vezi ADR-0012.                                         |

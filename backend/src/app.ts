@@ -13,6 +13,11 @@ import type { Database } from './db/client.js';
 import { adminRouter } from './modules/admin/router.js';
 import { analysisRouter } from './modules/analysis/router.js';
 import { authRouter } from './modules/auth/router.js';
+import {
+  createAuthService,
+  createPendingUserFileStore,
+  registerAuthHooks,
+} from './modules/auth/service.js';
 import type { SendPasswordResetEmail, UserFileStore } from './modules/auth/service.js';
 import { contentRouter } from './modules/content/router.js';
 import { documentsRouter } from './modules/documents/router.js';
@@ -20,6 +25,7 @@ import { createLlmClient } from './modules/llm/service.js';
 import type { LLMClient } from './modules/llm/service.js';
 import { masteryRouter } from './modules/mastery/router.js';
 import { remindersRouter } from './modules/reminders/router.js';
+import { createPasswordResetSender } from './modules/reminders/service.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -37,7 +43,6 @@ export interface AppDependencies {
   /**
    * Sends the password-reset e-mail. Defaults to the reminders module's sender
    * (`createPasswordResetSender`). Tests pass a function that records the messages.
-   * Segment 1B wires it into the auth service.
    */
   sendPasswordResetEmail?: SendPasswordResetEmail;
   /** Removes a deleted account's uploaded files. Segment 2 provides the real one (Q43). */
@@ -62,6 +67,19 @@ export async function buildApp(deps: AppDependencies): Promise<FastifyInstance> 
   app.decorate('config', deps.config);
   app.decorate('db', deps.db);
   app.decorate('llm', deps.llm ?? createLlmClient(deps.config));
+  // auth imports no other module: what it needs from them is passed in here.
+  app.decorate(
+    'auth',
+    createAuthService({
+      config: deps.config,
+      db: deps.db,
+      log: app.log,
+      sendPasswordResetEmail:
+        deps.sendPasswordResetEmail ??
+        createPasswordResetSender({ config: deps.config, log: app.log }),
+      userFiles: deps.userFiles ?? createPendingUserFileStore(app.log),
+    }),
+  );
 
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
@@ -76,6 +94,8 @@ export async function buildApp(deps: AppDependencies): Promise<FastifyInstance> 
   await app.register(
     async (api) => {
       requireDeclaredAccess(api);
+      // The one place where sessions and roles are checked (docs/design/auth.md, 6.1).
+      registerAuthHooks(api, app.auth);
       await api.register(healthRoutes);
       await api.register(authRouter);
       await api.register(documentsRouter);
