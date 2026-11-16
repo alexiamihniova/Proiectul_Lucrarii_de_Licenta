@@ -1,6 +1,11 @@
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { z } from 'zod';
-import { NoContent, endpoint, notImplemented } from '../../core/http.js';
+import type { FastifyRequest } from 'fastify';
+import type { UserActor } from '../../core/actor.js';
+import { AppError } from '../../core/errors.js';
+import { NoContent, endpoint } from '../../core/http.js';
+import { auditLog } from '../../core/logger.js';
+import { clearedSessionCookie, sessionCookie } from './cookies.js';
 import {
   AccountDeleteRequest,
   AccountExport,
@@ -15,6 +20,12 @@ import {
 } from './schemas.js';
 
 const tag = 'auth';
+
+/** The hook sets the actor on every route that is not public; this only narrows the type. */
+function requireActor(request: FastifyRequest): UserActor {
+  if (!request.actor) throw new AppError('UNAUTHENTICATED');
+  return request.actor;
+}
 
 /** Segment 1 — UC-01, UC-02, UC-03, UC-11, UC-12. */
 export const authRouter: FastifyPluginAsyncZod = async (app) => {
@@ -34,7 +45,30 @@ export const authRouter: FastifyPluginAsyncZod = async (app) => {
       },
       { body: RegisterRequest, response: { 201: SessionResponse } },
     ),
-    handler: notImplemented,
+    attachValidation: true,
+    handler: async (request, reply) => {
+      // M01: any invalid field answers INVALID_REGISTRATION_DATA, with the fields in `details`.
+      const invalid = request.validationError;
+      if (invalid) {
+        throw new AppError(
+          'INVALID_REGISTRATION_DATA',
+          (invalid.validation as { instancePath: string; message?: string }[]).map((issue) => ({
+            path: `body${issue.instancePath}`,
+            message: issue.message ?? 'invalid',
+          })),
+        );
+      }
+      const session = await app.auth.register({
+        email: request.body.email,
+        password: request.body.password,
+        passwordConfirmation: request.body.password_confirmation,
+        gdprConsent: request.body.gdpr_consent,
+      });
+      return reply
+        .code(201)
+        .header('set-cookie', sessionCookie(app.config, session.token))
+        .send(session.response);
+    },
   });
 
   app.route({
@@ -53,7 +87,22 @@ export const authRouter: FastifyPluginAsyncZod = async (app) => {
       },
       { body: LoginRequest, response: { 200: SessionResponse } },
     ),
-    handler: notImplemented,
+    handler: async (request, reply) => {
+      try {
+        const session = await app.auth.login(request.body);
+        return await reply
+          .header('set-cookie', sessionCookie(app.config, session.token))
+          .send(session.response);
+      } catch (error) {
+        if (error instanceof AppError && error.code === 'ACCOUNT_TEMPORARILY_LOCKED') {
+          const { retry_after_seconds: seconds } = error.details as {
+            retry_after_seconds: number;
+          };
+          reply.header('retry-after', String(seconds)); // C-12
+        }
+        throw error;
+      }
+    },
   });
 
   app.route({
@@ -69,7 +118,11 @@ export const authRouter: FastifyPluginAsyncZod = async (app) => {
       },
       { response: { 204: NoContent } },
     ),
-    handler: notImplemented,
+    handler: async (request, reply) => {
+      // The token is not revoked (accepted risk, ADR-0011): the browser forgets it.
+      auditLog(request.log, { action: 'auth.logout', actor_id: request.user?.id ?? null });
+      return reply.code(204).header('set-cookie', clearedSessionCookie(app.config)).send();
+    },
   });
 
   app.route({
@@ -87,7 +140,12 @@ export const authRouter: FastifyPluginAsyncZod = async (app) => {
       },
       { response: { 200: SessionResponse } },
     ),
-    handler: notImplemented,
+    handler: async (request) => {
+      const user = request.user ? await app.auth.getUserById(request.user.id) : null;
+      if (!user || !request.sessionExpiresAt) throw new AppError('UNAUTHENTICATED');
+      // The session is not extended by activity (Q41): this is the `exp` of the token.
+      return { user, expires_at: request.sessionExpiresAt.toISOString() };
+    },
   });
 
   app.route({
@@ -106,7 +164,10 @@ export const authRouter: FastifyPluginAsyncZod = async (app) => {
       },
       { body: PasswordResetRequest, response: { 202: z.undefined().describe('Accepted') } },
     ),
-    handler: notImplemented,
+    handler: async (request, reply) => {
+      await app.auth.requestPasswordReset(request.body.email);
+      return reply.code(202).send();
+    },
   });
 
   app.route({
@@ -125,7 +186,18 @@ export const authRouter: FastifyPluginAsyncZod = async (app) => {
       },
       { body: PasswordResetConfirm, response: { 204: NoContent } },
     ),
-    handler: notImplemented,
+    handler: async (request, reply) => {
+      if (request.body.password !== request.body.password_confirmation) {
+        throw new AppError('VALIDATION_ERROR', [
+          { path: 'body/password_confirmation', message: 'must equal the password' },
+        ]);
+      }
+      await app.auth.confirmPasswordReset({
+        token: request.body.token,
+        password: request.body.password,
+      });
+      return reply.code(204).send();
+    },
   });
 
   app.route({
@@ -141,7 +213,7 @@ export const authRouter: FastifyPluginAsyncZod = async (app) => {
       },
       { response: { 200: Preferences } },
     ),
-    handler: notImplemented,
+    handler: async (request) => app.auth.getPreferences(requireActor(request)),
   });
 
   app.route({
@@ -158,7 +230,7 @@ export const authRouter: FastifyPluginAsyncZod = async (app) => {
       },
       { body: PreferencesUpdate, response: { 200: Preferences } },
     ),
-    handler: notImplemented,
+    handler: async (request) => app.auth.updatePreferences(requireActor(request), request.body),
   });
 
   app.route({
@@ -187,7 +259,13 @@ export const authRouter: FastifyPluginAsyncZod = async (app) => {
         },
       },
     ),
-    handler: notImplemented,
+    handler: async (request, reply) => {
+      const file = await app.auth.exportAccount(requireActor(request), request.query.format);
+      return reply
+        .header('content-type', file.contentType)
+        .header('content-disposition', `attachment; filename="${file.filename}"`)
+        .send(file.body as never);
+    },
   });
 
   app.route({
@@ -205,6 +283,9 @@ export const authRouter: FastifyPluginAsyncZod = async (app) => {
       },
       { body: AccountDeleteRequest, response: { 204: NoContent } },
     ),
-    handler: notImplemented,
+    handler: async (request, reply) => {
+      await app.auth.deleteOwnAccount(requireActor(request), request.body.password);
+      return reply.code(204).header('set-cookie', clearedSessionCookie(app.config)).send();
+    },
   });
 };
