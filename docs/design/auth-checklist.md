@@ -8,22 +8,26 @@ Referințe: `docs/design/auth.md` (secțiunile din paranteze), ADR-0005, ADR-001
 
 ## A. Predarea Segmentului 1B
 
-- [ ] `make test` rulează și testele din `backend/tests/auth/` și trece. **Excluderea a fost
+Verificat la 16.11.2026, la sfârșitul Segmentului 1B: 647 de teste backend în `make test`, dintre
+care 477 în `tests/auth/`; `git diff` pe `backend/tests/auth/` față de Segmentul 1A este gol.
+Dependență nouă: `bcrypt` (ADR-0010). Recenzia finală reverifică fiecare punct.
+
+- [x] `make test` rulează și testele din `backend/tests/auth/` și trece. **Excluderea a fost
       eliminată**: nu mai există `backend/vitest.auth.config.ts`, scriptul `test:auth`, ținta
       `test-auth` din Makefile, linia `exclude` din `backend/vitest.config.ts` și jobul
       `auth-spec` din `.github/workflows/ci.yml`.
-- [ ] Niciun test din `backend/tests/auth/` nu a fost modificat, șters, sărit (`skip`, `todo`) sau
+- [x] Niciun test din `backend/tests/auth/` nu a fost modificat, șters, sărit (`skip`, `todo`) sau
       slăbit ca să treacă. `git diff` față de commit-ul Segmentului 1A, pe acest director, este
       gol sau conține doar corecții semnalate și aprobate.
-- [ ] `'auth'` a fost adăugat în `IMPLEMENTED_TAGS` din `backend/tests/api-contract.test.ts`.
-- [ ] Interfețele din `modules/auth/types.ts` au aceeași formă; semnăturile `createAuthService`,
+- [x] `'auth'` a fost adăugat în `IMPLEMENTED_TAGS` din `backend/tests/api-contract.test.ts`.
+- [x] Interfețele din `modules/auth/types.ts` au aceeași formă; semnăturile `createAuthService`,
       `registerAuthHooks`, `authWorkerTasks` sunt neschimbate.
-- [ ] Fiecare dependență nouă este justificată în mesajul de commit sau într-un ADR.
-- [ ] `make lint` și `make check-generated` trec; `docs/openapi.json` este la zi.
-- [ ] `npm run admin:create` există, cere parola interactiv și nu o primește ca argument.
-- [ ] `docs/OPEN_QUESTIONS.md`: Q33, Q36–Q41 sunt confirmate (16.11.2026); Q42 este acceptată
+- [x] Fiecare dependență nouă este justificată în mesajul de commit sau într-un ADR.
+- [x] `make lint` și `make check-generated` trec; `docs/openapi.json` este la zi.
+- [x] `npm run admin:create` există, cere parola interactiv și nu o primește ca argument.
+- [x] `docs/OPEN_QUESTIONS.md`: Q33, Q36–Q41 sunt confirmate (16.11.2026); Q42 este acceptată
       ca limitare; Q43 este obligația Segmentului 2 (secțiunea G).
-- [ ] Procedura pentru conturile de administrator din `docs/design/auth.md`, 6.4, corespunde
+- [x] Procedura pentru conturile de administrator din `docs/design/auth.md`, 6.4, corespunde
       scriptului `admin:create` livrat.
 
 ## B. Parole (1)

@@ -6,14 +6,12 @@ Tabelele de mai jos leagă fiecare grup de cazuri de cerința din SRS sau din Do
 ## Cum se rulează
 
 ```sh
-make test-auth                      # sau: npm --prefix backend run test:auth
-npm --prefix backend run test:auth -- tests/auth/login-lockout.test.ts
+make test                           # toate testele, inclusiv cele din tests/auth/
+npm --prefix backend test -- tests/auth/login-lockout.test.ts
 ```
 
-Până la Segmentul 1B testele **pică**: rutele răspund `501`, iar serviciul nu este implementat.
-De aceea sunt ținute în afara `make test` (`exclude` în `backend/vitest.config.ts`) și rulează în
-CI într-un job separat, `auth-spec`, care nu blochează îmbinarea. Segmentul 1B elimină
-excluderea; de atunci `make test` le include și trebuie să treacă.
+De la Segmentul 1B testele trec și fac parte din `make test` și din jobul `backend` din CI. Până
+atunci au fost ținute separat (`test:auth`, jobul `auth-spec`), fiindcă picau contra rutelor `501`.
 
 Testele au fost verificate pe o implementare de probă, care nu face parte din repozitoriu: toate
 cele 477 trec pe ea, deci sunt coerente între ele și cu designul. Implementarea de probă nu este
