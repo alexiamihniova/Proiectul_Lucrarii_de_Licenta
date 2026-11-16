@@ -166,7 +166,8 @@ Allowed dependency direction between modules (no cycles):
 
 - LLM: Gemini API, plan gratuit — vezi docs/ADR/0012-furnizor-llm.md. Orice segment care atinge
   generarea respectă constrângerile de acolo (cotă comună mică, 429, fără date personale în
-  prompturi, grupare, generare la cerere, rezervă clasică).
+  prompturi, grupare, generare la cerere, rezervă clasică). „Rezerva clasică” nu este încă
+  definită: nu o implementa și nu începe Segmentele 3–4 până când autoarea o definește.
 
 ## Before starting a segment
 

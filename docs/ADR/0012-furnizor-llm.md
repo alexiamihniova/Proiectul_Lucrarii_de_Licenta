@@ -30,14 +30,15 @@ configurare.
 
 ## Cerințe de arhitectură
 
-- Interfață LlmProvider, cu GeminiProvider; furnizor, model și cheie din configurare.
-  FakeProvider pentru teste și dezvoltare: testele nu apelează niciodată API-ul real.
+- Interfața `LLMClient` (ADR-0009), cu o implementare pentru Gemini; furnizor, model și cheie din
+  configurare. `FakeLLMClient` pentru teste și dezvoltare: testele nu apelează niciodată API-ul
+  real.
 - Cheia API doar pe server (variabilă de mediu).
 - Generarea rulează asincron în worker, printr-o coadă cu limitator global (token bucket) care
   respectă RPM-ul configurat.
 - Economie de apeluri: conceptele se grupează într-un singur apel per tip de conținut, cu ieșire
-  JSON structurată, validată per concept (ținta: 5–6 apeluri per document). Generarea se face la
-  cerere: rezumatul la încărcare, testul și flashcard-urile la prima deschidere.
+  JSON structurată, validată per concept (ținta: 5–6 apeluri per document). Toată generarea se
+  face la cererea studentului, conform RF10; nimic nu se generează la încărcare.
 - Cache: un rezultat se generează o singură dată per (document, tip, versiune prompt) și se
   salvează în bază.
 - Cote numărate în apeluri către model: buget zilnic per proiect (implicit 80% din RPD-ul
@@ -54,10 +55,8 @@ Cost zero, suficient pentru prototip și demonstrație. Gruparea conceptelor imp
 3.1.3 (vezi Q44). Limitele concrete se consemnează în lucrare cu data consultării. Pentru
 susținere, conținutul demonstrației se pregenerează (cache).
 
-## Corespondența cu codul existent (notă adăugată la consemnare)
+## Legături
 
-- „LlmProvider” și „FakeProvider” corespund interfeței `LLMClient` și clasei `FakeLLMClient` din
-  ADR-0009, deja în `modules/llm/`; „GeminiProvider” este implementarea reală a Segmentului 3.
-- Gruparea conceptelor schimbă semnătura `generateMaterials` din ADR-0009 (azi: un concept pe
-  apel); Segmentul 4 o modifică împreună cu SRS 3.1.3.
-- Codul `LLM_QUOTA_EXHAUSTED` nu există încă în `core/errors.ts`; îl adaugă Segmentul 3.
+Interfața, metodele ei și clientul fals sunt descrise în [ADR-0009](0009-llmclient.md). Gruparea
+conceptelor schimbă semnătura `generateMaterials` de acolo (azi: un concept pe apel); Segmentul 4
+o modifică împreună cu SRS 3.1.3.
