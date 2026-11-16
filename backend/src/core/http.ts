@@ -119,10 +119,13 @@ export function endpoint<S extends EndpointSchema>(meta: EndpointMeta, schema: S
       description: [meta.description, authNote].filter(Boolean).join('\n\n'),
       security: meta.auth === 'public' ? [] : [{ cookieAuth: [] }],
       ...schema,
+      // Typed as the success responses only: handlers return those and THROW AppError for
+      // everything else, so the error statuses are documentation, not handler return types.
+      // (Intersecting with a status → ErrorResponse index would type every reply as an error.)
       response: {
         ...schema.response,
         ...errorResponses(meta.auth, meta.errors ?? []),
-      } as S['response'] & Record<number, typeof ErrorResponse>,
+      } as S['response'],
     },
   };
 }

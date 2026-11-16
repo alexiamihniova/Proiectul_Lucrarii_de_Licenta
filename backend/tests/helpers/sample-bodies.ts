@@ -1,0 +1,36 @@
+/** Smallest valid request body for every operation that has one. Doubles as contract examples. */
+export const BODIES: Record<string, unknown> = {
+  register: {
+    email: 'ana@example.com',
+    password: 'parola123',
+    password_confirmation: 'parola123',
+    gdpr_consent: true,
+  },
+  login: { email: 'ana@example.com', password: 'parola123' },
+  requestPasswordReset: { email: 'ana@example.com' },
+  confirmPasswordReset: { token: 'abc', password: 'parola123', password_confirmation: 'parola123' },
+  updatePreferences: { theme: 'dark', reminder_time: '07:30', daily_goal: 20 },
+  deleteAccount: { password: 'parola123' },
+  createSubject: { name: 'Baze de date' },
+  renameSubject: { name: 'BD' },
+  renameDocument: { file_name: 'curs-sql.pdf' },
+  createConcept: {
+    name: 'Cheie primară',
+    definition: 'Identifică unic un rând.',
+    passage_ids: [1],
+  },
+  updateConcept: { name: 'Cheie primară' },
+  mergeConcepts: { source_concept_id: 2 },
+  generateMaterials: { document_id: 1, type: 'flashcard', concept_ids: [1, 2], count: 5 },
+  reportMaterial: { reason: 'Răspunsul corect este altul.' },
+  createTest: {
+    subject_id: 1,
+    question_count: 10,
+    types: ['multiple_choice', 'open'],
+    difficulty: 'medium',
+  },
+  answerTestQuestion: { material_id: 1, answer: 'true' },
+  answerReview: { material_id: 1, rating: 'hard' },
+  unsubscribeFromReminders: { token: 'signed-token' },
+  adminUpdateSettings: { uploads_per_day: 15 },
+};

@@ -27,6 +27,10 @@ export interface AuthenticatedUser {
 }
 
 declare module 'fastify' {
+  interface FastifyInstance {
+    /** The auth service of this application instance. Decorated in src/app.ts (Segment 1B). */
+    auth: AuthService;
+  }
   interface FastifyRequest {
     /** The authenticated, active user; `null` on public routes. Set by the auth hook. */
     user: AuthenticatedUser | null;

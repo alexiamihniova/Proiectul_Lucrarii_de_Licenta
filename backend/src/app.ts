@@ -54,6 +54,8 @@ export async function buildApp(deps: AppDependencies): Promise<FastifyInstance> 
   const app = Fastify({
     logger: loggerOptions(deps.config, deps.logStream),
     genReqId: () => crypto.randomUUID(),
+    // The client address used by the per-IP rate limit (docs/design/auth.md, 3.3).
+    trustProxy: deps.config.trustProxy,
     bodyLimit: 1024 * 1024, // JSON bodies; file uploads are limited by the multipart plugin
   });
 
