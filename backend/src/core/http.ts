@@ -59,9 +59,9 @@ export type Auth = 'public' | 'student' | 'admin' | 'any';
 declare module 'fastify' {
   interface FastifyContextConfig {
     /**
-     * Who may call the route. Set by `endpoint()`. Segment 1 enforces it with ONE global
-     * `preHandler` hook that reads `request.routeOptions.config.auth`; routers never check
-     * roles themselves.
+     * Who may call the route. Set by `endpoint()`. The auth module enforces it with ONE global
+     * `onRequest` hook (before body validation) that reads `request.routeOptions.config.auth`;
+     * routers never check roles themselves. See docs/design/auth.md, section 6.
      */
     auth?: Auth;
   }

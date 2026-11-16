@@ -23,6 +23,16 @@ export const ERRORS = {
     message: 'Sesiunea a expirat sau lipsește. Autentifică-te din nou.',
   },
   FORBIDDEN: { status: 403, message: 'Nu ai dreptul să faci această acțiune.' },
+  /** CSRF defence (ADR-0011): the request comes from another origin. */
+  ORIGIN_NOT_ALLOWED: {
+    status: 403,
+    message: 'Cererea vine de pe un alt site și a fost refuzată.',
+  },
+  /** Per-IP rate limit (Q33): details = { retry_after_seconds }. */
+  TOO_MANY_REQUESTS: {
+    status: 429,
+    message: 'Prea multe cereri. Încearcă din nou peste puțin timp.',
+  },
   NOT_FOUND: { status: 404, message: 'Resursa cerută nu există.' },
   ROUTE_NOT_FOUND: { status: 404, message: 'Ruta cerută nu există.' },
   CONFLICT: { status: 409, message: 'Acțiunea intră în conflict cu starea curentă a resursei.' },
@@ -60,6 +70,13 @@ export const ERRORS = {
     message: 'Linkul de resetare este invalid, expirat sau a fost deja folosit.',
   },
   PASSWORD_CONFIRMATION_FAILED: { status: 403, message: 'Parola introdusă nu este corectă.' },
+  /** bcrypt ignores everything after 72 bytes (ADR-0010, Q34). */
+  PASSWORD_TOO_LONG: {
+    status: 400,
+    srs: 'M01',
+    message:
+      'Parola este prea lungă: poate avea cel mult 72 de octeți (literele cu diacritice ocupă câte 2).',
+  },
 
   // --- subjects & documents (Segment 2) --------------------------------------------------
   SUBJECT_NAME_TAKEN: { status: 409, message: 'Ai deja o materie cu acest nume.' },

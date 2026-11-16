@@ -3,7 +3,7 @@
   "info": {
     "title": "Recap API",
     "version": "0.1.0",
-    "description": "\nContract of the active-recall web application (bachelor thesis). Generated from the Zod schemas\nin `backend/src/modules/*/schemas.ts`; do not edit `docs/openapi.json` by hand.\n\n**Conventions**\n\n- Base path `/api/v1`; JSON bodies; `snake_case` field names; integer ids;\n  ISO 8601 UTC timestamps; `YYYY-MM-DD` dates.\n- Authentication: session JWT (≤ 24 h) in an httpOnly cookie, sent automatically by the browser.\n- Collections: `?page=&page_size=` → `{ items, total, page, page_size }`.\n- Errors: `{ \"error\": { \"code\", \"message\", \"details\" } }`.\n- Each operation summary starts with the use cases it serves, e.g. `[UC-04]`.\n- Routes answer `501 NOT_IMPLEMENTED` until their segment is built.\n\n**Error catalogue**\n\n| code | HTTP | message (SRS id) |\n|---|---|---|\n| `VALIDATION_ERROR` | 400 | Datele trimise nu sunt valide. |\n| `UNAUTHENTICATED` | 401 | Sesiunea a expirat sau lipsește. Autentifică-te din nou. |\n| `FORBIDDEN` | 403 | Nu ai dreptul să faci această acțiune. |\n| `NOT_FOUND` | 404 | Resursa cerută nu există. |\n| `ROUTE_NOT_FOUND` | 404 | Ruta cerută nu există. |\n| `CONFLICT` | 409 | Acțiunea intră în conflict cu starea curentă a resursei. |\n| `INTERNAL_ERROR` | 500 | Eroare internă a serverului. |\n| `NOT_IMPLEMENTED` | 501 | Funcționalitatea nu este încă implementată. |\n| `INVALID_REGISTRATION_DATA` | 400 | Verifică datele: adresa de e-mail trebuie să fie validă, iar parola să aibă 8–64 de caractere, cu cel puțin o literă și o cifră. (M01) |\n| `EMAIL_ALREADY_EXISTS` | 409 | Există deja un cont cu această adresă. Autentifică-te sau resetează parola. (M02) |\n| `INVALID_CREDENTIALS` | 401 | E-mailul sau parola sunt greșite. După 5 încercări greșite, autentificarea se blochează 15 minute. (M03) |\n| `ACCOUNT_TEMPORARILY_LOCKED` | 429 | Prea multe încercări greșite. Autentificarea este blocată temporar. (M03) |\n| `ACCOUNT_BLOCKED` | 403 | Contul este blocat de administrator. |\n| `RESET_TOKEN_INVALID` | 400 | Linkul de resetare este invalid, expirat sau a fost deja folosit. |\n| `PASSWORD_CONFIRMATION_FAILED` | 403 | Parola introdusă nu este corectă. |\n| `SUBJECT_NAME_TAKEN` | 409 | Ai deja o materie cu acest nume. |\n| `UNSUPPORTED_FILE_FORMAT` | 415 | Formatul fișierului nu este acceptat. Încarcă un PDF, DOCX sau TXT. (M04) |\n| `FILE_TOO_LARGE` | 413 | Fișierul depășește limita de dimensiune sau de pagini. Încarcă o variantă mai mică. (M05) |\n| `TEXT_NOT_EXTRACTABLE` | 422 | Documentul nu a putut fi citit. Încarcă o versiune în care textul poate fi selectat. (M06) |\n| `DAILY_UPLOAD_LIMIT_REACHED` | 429 | Ai atins limita zilnică de încărcări. Revino mâine. (M08) |\n| `DOCUMENT_ALREADY_PROCESSING` | 409 | Documentul este deja în procesare. |\n| `DOCUMENT_NOT_READY` | 409 | Documentul nu este încă analizat complet. |\n| `LLM_UNAVAILABLE` | 503 | Serviciul de analiză nu este disponibil acum. Poți continua cu materialele existente; încearcă din nou mai târziu. (M07) |\n| `SOURCE_NOT_VERIFIED` | 422 | Sursa acestui material nu a putut fi verificată în document. (M09) |\n| `CONCEPTS_IN_DIFFERENT_DOCUMENTS` | 409 | Se pot uni numai concepte din același document. |\n| `MATERIAL_ALREADY_REPORTED` | 409 | Ai raportat deja acest material. |\n| `NOT_ENOUGH_MATERIALS` | 409 | Nu există suficiente materiale verificate pentru acest test. |\n| `TEST_ALREADY_FINISHED` | 409 | Testul este deja finalizat. |\n| `TEST_NOT_FINISHED` | 409 | Testul nu este încă finalizat. |\n| `UNSUBSCRIBE_TOKEN_INVALID` | 400 | Linkul de dezabonare nu este valid. |\n"
+    "description": "\nContract of the active-recall web application (bachelor thesis). Generated from the Zod schemas\nin `backend/src/modules/*/schemas.ts`; do not edit `docs/openapi.json` by hand.\n\n**Conventions**\n\n- Base path `/api/v1`; JSON bodies; `snake_case` field names; integer ids;\n  ISO 8601 UTC timestamps; `YYYY-MM-DD` dates.\n- Authentication: session JWT (≤ 24 h) in an httpOnly cookie, sent automatically by the browser.\n- Collections: `?page=&page_size=` → `{ items, total, page, page_size }`.\n- Errors: `{ \"error\": { \"code\", \"message\", \"details\" } }`.\n- Each operation summary starts with the use cases it serves, e.g. `[UC-04]`.\n- Routes answer `501 NOT_IMPLEMENTED` until their segment is built.\n\n**Error catalogue**\n\n| code | HTTP | message (SRS id) |\n|---|---|---|\n| `VALIDATION_ERROR` | 400 | Datele trimise nu sunt valide. |\n| `UNAUTHENTICATED` | 401 | Sesiunea a expirat sau lipsește. Autentifică-te din nou. |\n| `FORBIDDEN` | 403 | Nu ai dreptul să faci această acțiune. |\n| `ORIGIN_NOT_ALLOWED` | 403 | Cererea vine de pe un alt site și a fost refuzată. |\n| `TOO_MANY_REQUESTS` | 429 | Prea multe cereri. Încearcă din nou peste puțin timp. |\n| `NOT_FOUND` | 404 | Resursa cerută nu există. |\n| `ROUTE_NOT_FOUND` | 404 | Ruta cerută nu există. |\n| `CONFLICT` | 409 | Acțiunea intră în conflict cu starea curentă a resursei. |\n| `INTERNAL_ERROR` | 500 | Eroare internă a serverului. |\n| `NOT_IMPLEMENTED` | 501 | Funcționalitatea nu este încă implementată. |\n| `INVALID_REGISTRATION_DATA` | 400 | Verifică datele: adresa de e-mail trebuie să fie validă, iar parola să aibă 8–64 de caractere, cu cel puțin o literă și o cifră. (M01) |\n| `EMAIL_ALREADY_EXISTS` | 409 | Există deja un cont cu această adresă. Autentifică-te sau resetează parola. (M02) |\n| `INVALID_CREDENTIALS` | 401 | E-mailul sau parola sunt greșite. După 5 încercări greșite, autentificarea se blochează 15 minute. (M03) |\n| `ACCOUNT_TEMPORARILY_LOCKED` | 429 | Prea multe încercări greșite. Autentificarea este blocată temporar. (M03) |\n| `ACCOUNT_BLOCKED` | 403 | Contul este blocat de administrator. |\n| `RESET_TOKEN_INVALID` | 400 | Linkul de resetare este invalid, expirat sau a fost deja folosit. |\n| `PASSWORD_CONFIRMATION_FAILED` | 403 | Parola introdusă nu este corectă. |\n| `PASSWORD_TOO_LONG` | 400 | Parola este prea lungă: poate avea cel mult 72 de octeți (literele cu diacritice ocupă câte 2). (M01) |\n| `SUBJECT_NAME_TAKEN` | 409 | Ai deja o materie cu acest nume. |\n| `UNSUPPORTED_FILE_FORMAT` | 415 | Formatul fișierului nu este acceptat. Încarcă un PDF, DOCX sau TXT. (M04) |\n| `FILE_TOO_LARGE` | 413 | Fișierul depășește limita de dimensiune sau de pagini. Încarcă o variantă mai mică. (M05) |\n| `TEXT_NOT_EXTRACTABLE` | 422 | Documentul nu a putut fi citit. Încarcă o versiune în care textul poate fi selectat. (M06) |\n| `DAILY_UPLOAD_LIMIT_REACHED` | 429 | Ai atins limita zilnică de încărcări. Revino mâine. (M08) |\n| `DOCUMENT_ALREADY_PROCESSING` | 409 | Documentul este deja în procesare. |\n| `DOCUMENT_NOT_READY` | 409 | Documentul nu este încă analizat complet. |\n| `LLM_UNAVAILABLE` | 503 | Serviciul de analiză nu este disponibil acum. Poți continua cu materialele existente; încearcă din nou mai târziu. (M07) |\n| `SOURCE_NOT_VERIFIED` | 422 | Sursa acestui material nu a putut fi verificată în document. (M09) |\n| `CONCEPTS_IN_DIFFERENT_DOCUMENTS` | 409 | Se pot uni numai concepte din același document. |\n| `MATERIAL_ALREADY_REPORTED` | 409 | Ai raportat deja acest material. |\n| `NOT_ENOUGH_MATERIALS` | 409 | Nu există suficiente materiale verificate pentru acest test. |\n| `TEST_ALREADY_FINISHED` | 409 | Testul este deja finalizat. |\n| `TEST_NOT_FINISHED` | 409 | Testul nu este încă finalizat. |\n| `UNSUBSCRIBE_TOKEN_INVALID` | 400 | Linkul de dezabonare nu este valid. |\n"
   },
   "components": {
     "securitySchemes": {
@@ -771,6 +771,8 @@
                   "VALIDATION_ERROR",
                   "UNAUTHENTICATED",
                   "FORBIDDEN",
+                  "ORIGIN_NOT_ALLOWED",
+                  "TOO_MANY_REQUESTS",
                   "NOT_FOUND",
                   "ROUTE_NOT_FOUND",
                   "CONFLICT",
@@ -783,6 +785,7 @@
                   "ACCOUNT_BLOCKED",
                   "RESET_TOKEN_INVALID",
                   "PASSWORD_CONFIRMATION_FAILED",
+                  "PASSWORD_TOO_LONG",
                   "SUBJECT_NAME_TAKEN",
                   "UNSUPPORTED_FILE_FORMAT",
                   "FILE_TOO_LARGE",
@@ -910,6 +913,8 @@
                   "VALIDATION_ERROR",
                   "UNAUTHENTICATED",
                   "FORBIDDEN",
+                  "ORIGIN_NOT_ALLOWED",
+                  "TOO_MANY_REQUESTS",
                   "NOT_FOUND",
                   "ROUTE_NOT_FOUND",
                   "CONFLICT",
@@ -922,6 +927,7 @@
                   "ACCOUNT_BLOCKED",
                   "RESET_TOKEN_INVALID",
                   "PASSWORD_CONFIRMATION_FAILED",
+                  "PASSWORD_TOO_LONG",
                   "SUBJECT_NAME_TAKEN",
                   "UNSUPPORTED_FILE_FORMAT",
                   "FILE_TOO_LARGE",
@@ -1312,11 +1318,8 @@
         "type": "object",
         "properties": {
           "email": {
-            "type": "string",
-            "maxLength": 254,
-            "format": "email",
-            "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$",
-            "example": "student@example.com"
+            "example": "student@example.com",
+            "type": "string"
           },
           "password": {
             "type": "string",
@@ -1624,11 +1627,8 @@
         "type": "object",
         "properties": {
           "email": {
-            "type": "string",
-            "maxLength": 254,
-            "format": "email",
-            "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$",
-            "example": "student@example.com"
+            "example": "student@example.com",
+            "type": "string"
           }
         },
         "required": [
@@ -1899,11 +1899,8 @@
         "type": "object",
         "properties": {
           "email": {
-            "type": "string",
-            "maxLength": 254,
-            "format": "email",
-            "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$",
-            "example": "student@example.com"
+            "example": "student@example.com",
+            "type": "string"
           },
           "password": {
             "type": "string",
@@ -3252,7 +3249,7 @@
         "tags": [
           "auth"
         ],
-        "description": "RF1. On success the session cookie is set. Errors: `INVALID_REGISTRATION_DATA` (M01), `EMAIL_ALREADY_EXISTS` (M02).\n\nPublic (no session required).",
+        "description": "RF1. On success the session cookie is set and the account gets its default preferences. Any invalid field answers `INVALID_REGISTRATION_DATA` (M01) with `details` listing the fields; a password over 72 bytes answers `PASSWORD_TOO_LONG`; an address that already has an account answers `EMAIL_ALREADY_EXISTS` (M02). Rate limited per IP (`TOO_MANY_REQUESTS`).\n\nPublic (no session required).",
         "requestBody": {
           "required": true,
           "content": {
@@ -3285,7 +3282,27 @@
               }
             }
           },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
             "description": "Default Response",
             "content": {
               "application/json": {
@@ -3325,7 +3342,7 @@
         "tags": [
           "auth"
         ],
-        "description": "RF2. Sets the session cookie (JWT, ≤ 24 h). Errors: `INVALID_CREDENTIALS` (M03, 401); `ACCOUNT_TEMPORARILY_LOCKED` (429, after 5 consecutive failures, `details.retry_after_seconds`, C-12/C-17); `ACCOUNT_BLOCKED` (403).\n\nPublic (no session required).",
+        "description": "RF2. Sets the session cookie (JWT, ≤ 24 h, HttpOnly, SameSite=Lax). Errors: `INVALID_CREDENTIALS` (M03, 401) for an unknown address or a wrong password, identically; `ACCOUNT_TEMPORARILY_LOCKED` (429) from the 5th consecutive failure and for 15 minutes, with `details.retry_after_seconds` and a `Retry-After` header (C-12, C-17); `ACCOUNT_BLOCKED` (403) only with the correct password; `TOO_MANY_REQUESTS` (429) for the per-IP limit.\n\nPublic (no session required).",
         "requestBody": {
           "required": true,
           "content": {
@@ -3565,7 +3582,7 @@
         "tags": [
           "auth"
         ],
-        "description": "RF2, C-24. Always answers 202, whether or not the address has an account, so that accounts cannot be enumerated.\n\nPublic (no session required).",
+        "description": "RF2, C-24. Always answers 202, whether or not the address has an account, so that accounts cannot be enumerated. The link is valid for 1 hour and can be used once.\n\nPublic (no session required).",
         "requestBody": {
           "required": true,
           "content": {
@@ -3582,6 +3599,26 @@
             "description": "Accepted"
           },
           "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
             "description": "Default Response",
             "content": {
               "application/json": {
@@ -3621,7 +3658,7 @@
         "tags": [
           "auth"
         ],
-        "description": "Errors: `RESET_TOKEN_INVALID` (unknown, expired or already used token).\n\nPublic (no session required).",
+        "description": "On success every existing session of the account stops working and no new session is opened: the user logs in with the new password. Errors: `RESET_TOKEN_INVALID` (unknown, expired or already used token, identically), `PASSWORD_TOO_LONG`.\n\nPublic (no session required).",
         "requestBody": {
           "required": true,
           "content": {
@@ -3638,6 +3675,26 @@
             "description": "No content"
           },
           "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
             "description": "Default Response",
             "content": {
               "application/json": {

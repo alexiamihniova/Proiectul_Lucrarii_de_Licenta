@@ -2,10 +2,26 @@ import { z } from 'zod';
 import { REMINDER_CHANNELS, THEMES, USER_ROLES, USER_STATUSES } from '../../core/domain.js';
 import { Id, Timestamp } from '../../core/http.js';
 
-/** RF1: valid format, at most 254 characters. Uniqueness is case-insensitive. */
+/** An e-mail address as stored and returned: already normalised. */
 export const Email = z.email().max(254).meta({ example: 'student@example.com' });
 
-/** RF1: 8–64 characters, at least one letter and one digit. */
+/**
+ * An e-mail address as received (RF1; design 1.1): surrounding whitespace is removed and the
+ * address is lower-cased BEFORE the format and the 254-character limit are checked. Every
+ * request that carries an e-mail uses this schema, so normalisation cannot be forgotten.
+ */
+export const EmailInput = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .pipe(z.email().max(254))
+  .meta({ example: 'student@example.com' });
+
+/**
+ * RF1: 8–64 characters, at least one letter and one digit. The password is never trimmed or
+ * changed. The 72-byte limit of bcrypt (Q34) is checked by the service, because it answers
+ * with its own error code (`PASSWORD_TOO_LONG`).
+ */
 export const Password = z
   .string()
   .min(8)
@@ -33,7 +49,7 @@ export const SessionResponse = z
 
 export const RegisterRequest = z
   .object({
-    email: Email,
+    email: EmailInput,
     password: Password,
     password_confirmation: z.string().describe('Must equal `password`'),
     gdpr_consent: z.literal(true).describe('Consent to data processing; must be true (RF1)'),
@@ -41,10 +57,12 @@ export const RegisterRequest = z
   .meta({ id: 'RegisterRequest' });
 
 export const LoginRequest = z
-  .object({ email: Email, password: z.string().min(1).max(64) })
+  .object({ email: EmailInput, password: z.string().min(1).max(64) })
   .meta({ id: 'LoginRequest' });
 
-export const PasswordResetRequest = z.object({ email: Email }).meta({ id: 'PasswordResetRequest' });
+export const PasswordResetRequest = z
+  .object({ email: EmailInput })
+  .meta({ id: 'PasswordResetRequest' });
 
 export const PasswordResetConfirm = z
   .object({

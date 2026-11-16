@@ -216,22 +216,16 @@ describe('API contract', () => {
     it('validation errors list each invalid field', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/v1/auth/register',
-        payload: {
-          email: 'not-an-email',
-          password: 'short',
-          password_confirmation: 'x',
-          gdpr_consent: false,
-        },
+        // /auth/login: the generic format. /auth/register answers M01 instead (design 1.2).
+        url: '/api/v1/auth/login',
+        payload: { email: 'not-an-email', password: '' },
       });
       expect(response.statusCode).toBe(400);
       const body = response.json();
       expect(body.error.code).toBe('VALIDATION_ERROR');
       expect(body.error.message).toBe(ERRORS.VALIDATION_ERROR.message);
       const paths = body.error.details.map((d: { path: string }) => d.path);
-      expect(paths).toEqual(
-        expect.arrayContaining(['body/email', 'body/password', 'body/gdpr_consent']),
-      );
+      expect(paths).toEqual(expect.arrayContaining(['body/email', 'body/password']));
     });
 
     it.each([

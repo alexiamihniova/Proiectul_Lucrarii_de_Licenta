@@ -49,7 +49,7 @@ export interface paths {
     put?: never;
     /**
      * [UC-01] Create an account and open a session
-     * @description RF1. On success the session cookie is set. Errors: `INVALID_REGISTRATION_DATA` (M01), `EMAIL_ALREADY_EXISTS` (M02).
+     * @description RF1. On success the session cookie is set and the account gets its default preferences. Any invalid field answers `INVALID_REGISTRATION_DATA` (M01) with `details` listing the fields; a password over 72 bytes answers `PASSWORD_TOO_LONG`; an address that already has an account answers `EMAIL_ALREADY_EXISTS` (M02). Rate limited per IP (`TOO_MANY_REQUESTS`).
      *
      *     Public (no session required).
      */
@@ -71,7 +71,7 @@ export interface paths {
     put?: never;
     /**
      * [UC-02] Authenticate with e-mail and password
-     * @description RF2. Sets the session cookie (JWT, ≤ 24 h). Errors: `INVALID_CREDENTIALS` (M03, 401); `ACCOUNT_TEMPORARILY_LOCKED` (429, after 5 consecutive failures, `details.retry_after_seconds`, C-12/C-17); `ACCOUNT_BLOCKED` (403).
+     * @description RF2. Sets the session cookie (JWT, ≤ 24 h, HttpOnly, SameSite=Lax). Errors: `INVALID_CREDENTIALS` (M03, 401) for an unknown address or a wrong password, identically; `ACCOUNT_TEMPORARILY_LOCKED` (429) from the 5th consecutive failure and for 15 minutes, with `details.retry_after_seconds` and a `Retry-After` header (C-12, C-17); `ACCOUNT_BLOCKED` (403) only with the correct password; `TOO_MANY_REQUESTS` (429) for the per-IP limit.
      *
      *     Public (no session required).
      */
@@ -135,7 +135,7 @@ export interface paths {
     put?: never;
     /**
      * [UC-03] E-mail a password reset link
-     * @description RF2, C-24. Always answers 202, whether or not the address has an account, so that accounts cannot be enumerated.
+     * @description RF2, C-24. Always answers 202, whether or not the address has an account, so that accounts cannot be enumerated. The link is valid for 1 hour and can be used once.
      *
      *     Public (no session required).
      */
@@ -157,7 +157,7 @@ export interface paths {
     put?: never;
     /**
      * [UC-03] Set a new password with a reset token
-     * @description Errors: `RESET_TOKEN_INVALID` (unknown, expired or already used token).
+     * @description On success every existing session of the account stops working and no new session is opened: the user logs in with the new password. Errors: `RESET_TOKEN_INVALID` (unknown, expired or already used token, identically), `PASSWORD_TOO_LONG`.
      *
      *     Public (no session required).
      */
@@ -1526,6 +1526,8 @@ export interface components {
           | 'VALIDATION_ERROR'
           | 'UNAUTHENTICATED'
           | 'FORBIDDEN'
+          | 'ORIGIN_NOT_ALLOWED'
+          | 'TOO_MANY_REQUESTS'
           | 'NOT_FOUND'
           | 'ROUTE_NOT_FOUND'
           | 'CONFLICT'
@@ -1538,6 +1540,7 @@ export interface components {
           | 'ACCOUNT_BLOCKED'
           | 'RESET_TOKEN_INVALID'
           | 'PASSWORD_CONFIRMATION_FAILED'
+          | 'PASSWORD_TOO_LONG'
           | 'SUBJECT_NAME_TAKEN'
           | 'UNSUPPORTED_FILE_FORMAT'
           | 'FILE_TOO_LARGE'
@@ -1592,6 +1595,8 @@ export interface components {
           | 'VALIDATION_ERROR'
           | 'UNAUTHENTICATED'
           | 'FORBIDDEN'
+          | 'ORIGIN_NOT_ALLOWED'
+          | 'TOO_MANY_REQUESTS'
           | 'NOT_FOUND'
           | 'ROUTE_NOT_FOUND'
           | 'CONFLICT'
@@ -1604,6 +1609,7 @@ export interface components {
           | 'ACCOUNT_BLOCKED'
           | 'RESET_TOKEN_INVALID'
           | 'PASSWORD_CONFIRMATION_FAILED'
+          | 'PASSWORD_TOO_LONG'
           | 'SUBJECT_NAME_TAKEN'
           | 'UNSUPPORTED_FILE_FORMAT'
           | 'FILE_TOO_LARGE'
@@ -1720,10 +1726,7 @@ export interface components {
       unverified_source_rate: number | null;
     };
     LoginRequestInput: {
-      /**
-       * Format: email
-       * @example student@example.com
-       */
+      /** @example student@example.com */
       email: string;
       password: string;
     };
@@ -1817,10 +1820,7 @@ export interface components {
       password_confirmation: string;
     };
     PasswordResetRequestInput: {
-      /**
-       * Format: email
-       * @example student@example.com
-       */
+      /** @example student@example.com */
       email: string;
     };
     Preferences: {
@@ -1897,10 +1897,7 @@ export interface components {
       };
     };
     RegisterRequestInput: {
-      /**
-       * Format: email
-       * @example student@example.com
-       */
+      /** @example student@example.com */
       email: string;
       /** @example parola123 */
       password: string & string;
@@ -2436,7 +2433,25 @@ export interface operations {
         };
       };
       /** @description Default Response */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Default Response */
       409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Default Response */
+      429: {
         headers: {
           [name: string]: unknown;
         };
@@ -2700,6 +2715,24 @@ export interface operations {
         };
       };
       /** @description Default Response */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Default Response */
+      429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Default Response */
       500: {
         headers: {
           [name: string]: unknown;
@@ -2741,6 +2774,24 @@ export interface operations {
       };
       /** @description Default Response */
       400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Default Response */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Default Response */
+      429: {
         headers: {
           [name: string]: unknown;
         };
