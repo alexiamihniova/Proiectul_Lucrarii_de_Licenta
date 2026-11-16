@@ -476,19 +476,33 @@ verificarea adresei de e-mail la înregistrare (SRS nu o cere), parole compromis
 
 ## 9. Ce are de făcut Segmentul 1B
 
-1. Dependențe, cu justificare în commit: `bcrypt` (RNF6), `@fastify/cookie`, o bibliotecă JWT
-   (`jose`) și una pentru ZIP (Q11).
+1. Dependențe, cu justificare în commit: `bcrypt` (RNF6; nativ, vezi ADR-0010) și, dacă se
+   aleg, `@fastify/cookie` și o bibliotecă JWT (`jose`). Formatul cookie-ului și al jetonului
+   este fixat aici și verificat de teste, deci biblioteca este un detaliu. Arhiva ZIP a
+   exportului (Q11) poate fi scrisă fără dependență: fișiere stocate necomprimat, cu `crc32`
+   din `node:zlib`.
 2. `modules/auth/repository.ts` și `service.ts`: implementează interfețele din `types.ts`, fără
    să le schimbe forma. `createAuthService` și `registerAuthHooks` au deja semnătura.
-3. `app.ts`: înregistrează cookie-urile și `registerAuthHooks`; leagă `sendPasswordResetEmail`
-   și `userFiles` din `AppDependencies` (cu implementările implicite).
+3. `app.ts`: construiește serviciul cu `createAuthService`, îl pune pe `app.auth`
+   (`app.decorate`), apelează `registerAuthHooks(api, app.auth)` în domeniul `/api/v1`, imediat
+   după `requireDeclaredAccess`. Dependențele vin din `AppDependencies`: `sendPasswordResetEmail`
+   (implicit `createPasswordResetSender` din modulul `reminders`) și `userFiles` (implicit o
+   implementare care nu face nimic și avertizează, până la Segmentul 2).
 4. `worker.ts`: adaugă `authWorkerTasks` în `collectTasks()`.
 5. `scripts/create-admin.ts` și scriptul `admin:create`.
-6. Înlocuiește `notImplemented` în `modules/auth/router.ts`.
-7. **Elimină excluderea testelor**: șterge `backend/vitest.auth.config.ts`, scriptul `test:auth`,
-   linia `exclude` din `backend/vitest.config.ts` și jobul `auth-spec` din CI. La final,
+6. Înlocuiește `notImplemented` în `modules/auth/router.ts`. Pentru M01, ruta de înregistrare
+   folosește `attachValidation: true` și transformă eroarea de validare în
+   `INVALID_REGISTRATION_DATA`, cu aceleași `details` (`path` de forma `body/<câmp>`).
+7. **Elimină excluderea testelor** — obligatoriu: șterge `backend/vitest.auth.config.ts`,
+   scriptul `test:auth`, ținta `test-auth` din Makefile, linia `exclude` din
+   `backend/vitest.config.ts` și jobul `auth-spec` din `.github/workflows/ci.yml`. La final,
    `make test` rulează și testele din `tests/auth/` și trece.
-8. Actualizează `tests/api-contract.test.ts`: după apariția hook-ului, rutele protejate răspund
-   `401` fără sesiune. Testele care așteaptă `501` sau `400` pe rute protejate trebuie să
-   folosească o sesiune (`tests/helpers/session.ts`).
-9. Nu modifică testele din `tests/auth/` ca să treacă. Dacă un test pare greșit, se semnalează.
+8. Adaugă `'auth'` în `IMPLEMENTED_TAGS` din `tests/api-contract.test.ts`. Testul de contract
+   este deja pregătit pentru hook: își ia singur sesiuni când autentificarea există.
+9. Nu modifică testele din `tests/auth/` ca să treacă. Dacă un test pare greșit, se semnalează
+   și se așteaptă decizia.
+10. Parcurge `docs/design/auth-checklist.md`, secțiunea A.
+
+Pentru segmentele următoare: sesiunile de test se iau din `tests/helpers/session.ts`
+(`registerStudent`, `registerAdmin`), iar `describeOwnership` din
+`tests/helpers/authorization.ts` verifică automat rutele noi.

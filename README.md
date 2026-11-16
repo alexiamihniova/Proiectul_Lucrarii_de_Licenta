@@ -18,6 +18,9 @@ Segmentele 1–8.
 | [docs/DATA_MODEL.md](docs/DATA_MODEL.md)                  | Cele 16 tabele, corespondența română–engleză, constrângeri |
 | [docs/ADR/](docs/ADR/README.md)                           | Deciziile de arhitectură, câte una pe fișier               |
 | [docs/OPEN_QUESTIONS.md](docs/OPEN_QUESTIONS.md)          | Contradicții și lipsuri din specificații, cu propuneri     |
+| [docs/design/auth.md](docs/design/auth.md)                | Proiectarea conturilor și a accesului (Segmentul 1)        |
+| [docs/design/auth-tests.md](docs/design/auth-tests.md)    | Testele de conturi, trasate la cerințe                     |
+| [docs/design/auth-checklist.md](docs/design/auth-checklist.md) | Lista de verificare pentru recenzia de securitate     |
 | [docs/openapi.json](docs/openapi.json)                    | Contractul API (generat din cod)                           |
 | [CLAUDE.md](CLAUDE.md)                                    | Reguli și comenzi pentru sesiunile care continuă proiectul |
 | `docs/SRS_Specificarea_Cerintelor_Software.docx`          | Cerințele RF1–RF25, RNF1–RNF16                             |
@@ -96,6 +99,7 @@ curl http://localhost:3001/api/v1/subjects
 | `make migrate-status`  | Arată migrările și dacă sunt aplicate                                         |
 | `make seed`            | Scrie setările implicite care lipsesc                                         |
 | `make test`            | Testele backend (au nevoie de `TEST_DATABASE_URL`) și frontend                |
+| `make test-auth`       | Temporar: specificația de conturi, care pică până la Segmentul 1B             |
 | `make lint`            | ESLint, Prettier și `tsc --noEmit`, backend și frontend                       |
 | `make format`          | Rescrie fișierele cu Prettier                                                 |
 | `make openapi`         | Regenerează `docs/openapi.json` și tipurile frontendului                      |
