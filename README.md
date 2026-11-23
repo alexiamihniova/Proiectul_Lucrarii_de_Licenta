@@ -22,6 +22,9 @@ răspund `501` până la implementare, în Segmentele 2–8.
 | [docs/design/auth.md](docs/design/auth.md)                | Proiectarea conturilor și a accesului (Segmentul 1)        |
 | [docs/design/auth-tests.md](docs/design/auth-tests.md)    | Testele de conturi, trasate la cerințe                     |
 | [docs/design/auth-checklist.md](docs/design/auth-checklist.md) | Lista de verificare pentru recenzia de securitate     |
+| [docs/design/documents.md](docs/design/documents.md)      | Proiectarea materiilor și documentelor (Segmentul 2)       |
+| [docs/design/documents-tests.md](docs/design/documents-tests.md) | Testele de documente, trasate la cerințe          |
+| [docs/design/documents-checklist.md](docs/design/documents-checklist.md) | Lista de verificare pentru Segmentul 2   |
 | [docs/openapi.json](docs/openapi.json)                    | Contractul API (generat din cod)                           |
 | [CLAUDE.md](CLAUDE.md)                                    | Reguli și comenzi pentru sesiunile care continuă proiectul |
 | `docs/SRS_Specificarea_Cerintelor_Software.docx`          | Cerințele RF1–RF25, RNF1–RNF16                             |
@@ -110,6 +113,7 @@ Până la Segmentul 8 nu se trimit e-mailuri: în dezvoltare, legătura de reset
 | `make seed`            | Scrie setările implicite care lipsesc                                         |
 | `make admin EMAIL=…`   | Creează un cont de administrator; parola se cere interactiv                   |
 | `make test`            | Testele backend (au nevoie de `TEST_DATABASE_URL`) și frontend                |
+| `make test-documents`  | Temporar: specificația materiilor și documentelor, care pică până la Segmentul 2B |
 | `make lint`            | ESLint, Prettier și `tsc --noEmit`, backend și frontend                       |
 | `make format`          | Rescrie fișierele cu Prettier                                                 |
 | `make openapi`         | Regenerează `docs/openapi.json` și tipurile frontendului                      |
