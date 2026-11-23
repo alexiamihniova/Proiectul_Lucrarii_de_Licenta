@@ -1,5 +1,7 @@
 import type { Config } from '../../core/config.js';
 import type { SettingKey } from '../../core/domain.js';
+import type { Database } from '../../db/client.js';
+import { readStoredSettings } from './repository.js';
 
 /**
  * Public surface of the admin module (Segment 7). Other modules import ONLY from this file.
@@ -25,4 +27,18 @@ export function defaultSettings(config: Config): Record<SettingKey, number> {
     mastery_decay: 0.8,
     monthly_cost_limit: 10,
   };
+}
+
+/**
+ * THE way any module reads a limit or a threshold (RF25): the stored value of each setting, or
+ * its default when the row is missing. Nothing is cached, so a change made by an administrator
+ * applies from the next call. Read only: validating, changing and auditing settings is Segment
+ * 7's, and there are no routes for it yet (Q49).
+ */
+export async function getSettings(deps: {
+  config: Config;
+  db: Database;
+}): Promise<Record<SettingKey, number>> {
+  const stored = await readStoredSettings(deps.db);
+  return { ...defaultSettings(deps.config), ...stored };
 }
