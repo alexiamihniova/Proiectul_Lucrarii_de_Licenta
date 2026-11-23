@@ -1,6 +1,6 @@
 # Testele materiilor și documentelor (Segmentul 2A)
 
-Specificația executabilă a Segmentului 2 este în `backend/tests/documents/`: 10 fișiere, 242 de
+Specificația executabilă a Segmentului 2 este în `backend/tests/documents/`: 11 fișiere, 262 de
 teste. Ele descriu comportarea definită în `docs/design/documents.md`; Segmentul 2B o
 implementează fără să le modifice. Tabelele de mai jos leagă fiecare grup de cazuri de cerința
 din SRS sau din Dosar.
@@ -12,7 +12,7 @@ make test-documents                 # sau: npm --prefix backend run test:documen
 npm --prefix backend run test:documents -- tests/documents/upload.test.ts
 ```
 
-Până la Segmentul 2B testele **pică** (132 pică, 105 sunt sărite fiindcă `beforeAll` nu poate
+Până la Segmentul 2B testele **pică** (151 pică, 106 sunt sărite fiindcă `beforeAll` nu poate
 crea o materie, 5 trec): rutele răspund `501`. De aceea sunt ținute în afara `make test`
 (`exclude` în `backend/vitest.config.ts`) și rulează în CI într-un job separat, `documents-spec`,
 care nu blochează îmbinarea. Segmentul 2B elimină excluderea; de atunci `make test` le include și
@@ -21,13 +21,15 @@ trebuie să treacă.
 ## Cum au fost verificate
 
 Testele au fost rulate pe o implementare de probă, scrisă separat și **nepăstrată în repo**
-(`../reference-impl-2a/` lângă repo): toate cele 242 trec pe ea, deci sunt coerente între ele și
+(`../reference-impl-2a/` lângă repo): toate cele 262 trec pe ea, deci sunt coerente între ele și
 cu designul. Implementarea de probă este comprimată și aproximativă; nu este model pentru 2B.
-Rularea a descoperit trei greșeli de-ale testelor, corectate înainte de commit:
+Rularea a descoperit patru greșeli de-ale testelor, corectate înainte de commit:
 
 - un student făcea peste 10 încărcări într-un fișier și lovea limita zilnică (acum limita
   implicită de test este 50, iar setările modificate se șterg la sfârșit, nu se „restaurează”);
 - o așteptare greșită pentru numărul de pagini al unui fișier TXT/DOCX de 3300 de caractere;
+- un text „peste 2 pagini” care avea de fapt 5750 de caractere, deci 2 pagini (Q16): acum are
+  peste 7600 de caractere;
 - baza de date refuză orice modificare a unui rând șters (trigger), deci „îmbătrânirea” unui
   document șters în test cere oprirea triggerului pe durata unei instrucțiuni
   (`backdateDeletedDocument`).
@@ -80,13 +82,25 @@ Rularea a descoperit trei greșeli de-ale testelor, corectate înainte de commit
 | Lista pasajelor, filtrul de pagină, `DOCUMENT_NOT_READY`; funcțiile pentru alte module | RF4, RF5, UC-17    |
 | Fiecare propoziție este citat valid al pasajului ei                                    | RB1                |
 
-### `processing.test.ts` (31), `documents.test.ts` (25), `worker-tasks.test.ts` (4)
+### `pdf-page-limit.test.ts` (19)
+
+| Caz                                                                                   | Cerință            |
+| ------------------------------------------------------------------------------------- | ------------------ |
+| PDF peste limită respins la încărcare: 413, `exceeded = pages`, cu numărul găsit; fără rând, fără fișier, fără consum din limita zilnică | Q48 |
+| Pagini fără text numărate; exact limita acceptată; urmărește `UPLOAD_MAX_PAGES`        | Q48                |
+| DOCX și TXT nu se numără la încărcare; analiza decide                                  | Q48, Q16           |
+| PDF corupt, tăiat sau protejat cu parolă: acceptat; `TEXT_NOT_EXTRACTABLE` la analiză  | Q48, M06           |
+| `timeout` și `memory`: refuzat ca „prea complex” (413, `exceeded = complexity`, `reason`), fără urme | Q48        |
+| Numărătorul primește octeții și limitele din configurare; este chemat numai pentru PDF, după format și dimensiune, înainte de limita zilnică | design 2.5 |
+| Un numărător defect nu blochează încărcarea; eroarea se jurnalizează fără numele fișierului | design 2.5    |
+
+### `processing.test.ts` (32), `documents.test.ts` (25), `worker-tasks.test.ts` (4)
 
 | Caz                                                                                   | Cerință            |
 | ------------------------------------------------------------------------------------- | ------------------ |
 | `queued → processing → ready`; ordinea; doi workeri nu iau același document            | Dosar T3.1, ADR-0003 |
 | Starea nu se pune în cache (interogare periodică)                                      | C-02, Q13          |
-| Eșecuri cu motivul: M06, M05, M07, `INTERNAL_ERROR`; textul rămâne după eșecul analizei | RF4              |
+| Eșecuri cu motivul: M06, M05 (TXT la analiză; PDF ca plasă de siguranță), M07, `INTERNAL_ERROR`; textul rămâne după eșecul analizei | RF4              |
 | Limita de 60 s; `failStuckDocuments`                                                   | T2, PE             |
 | Ștergere în timpul analizei: rezultatul tardiv este ignorat                            | C-08               |
 | Reprocesare din `ready`/`error`; din `queued`/`processing`: 409; fără reextragere      | RF6, C-09, Q47     |
@@ -112,9 +126,8 @@ Rularea a descoperit trei greșeli de-ale testelor, corectate înainte de commit
   PDF-uri minimale, cu text ASCII; ordinea de citire pe pagini cu mai multe coloane nu e verificată.
 - **Calitatea împărțirii în propoziții pe text real.** Regulile din 3.4 sunt verificate pe cazuri
   alese; precizia pe un curs real se judecă la 2B, pe documente reale ale autoarei.
-- **Limita de pagini la încărcare pentru PDF** (Q48, decis la 23.11.2026): testele din 2A cer încă
-  varianta „doar la analiză”, iar unul o contrazice; se corectează înainte de 2B (design 11,
-  punctul 0).
+- **Timeout-ul și limita de memorie reale ale numărării paginilor** (Q48): numărătorul este un
+  port, iar testele îl înlocuiesc; măsurarea pe PDF-uri reale este a lui 2B (design 2.5).
 - **Oprirea efectivă a unei extrageri în curs** la depășirea timpului: se verifică semnalul și
   starea finală, nu că firul de execuție s-a oprit.
 - **Eșecul scrierii pe disc** (disc plin, permisiuni) nu este simulat.

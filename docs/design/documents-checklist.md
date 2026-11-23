@@ -27,9 +27,11 @@ Referințe: `docs/design/documents.md` (secțiunile din paranteze), ADR-0003, AD
 - [ ] `docs/OPEN_QUESTIONS.md`: Q12, Q13, Q16, Q17, Q46–Q50 sunt confirmate (23.11.2026); Q51 și Q52 sunt
       amânate către Segmentul 3; Q53 (60 s) rămâne provizorie; Q48 are consemnate măsurătorile
       numărării paginilor dacă 2B a revenit la „doar la analiză”.
-- [ ] Testul care contrazice Q48 a fost corectat în 2A înainte de 2B (design 11, punctul 0).
+- [x] Testul care contrazicea Q48 a fost corectat în 2A, iar testele noi (`pdf-page-limit.test.ts`)
+      există (design 11, punctul 0). *(făcut la 23.11.2026)*
 - [ ] `modules/shared-queries/` există, cu excepția ESLint numai pentru acel folder (ADR-0014);
-      `readStudyData` s-a mutat din `auth/repository.ts`; nicio altă interogare peste tabelele
+      `readStudyData` s-a mutat din `auth/repository.ts`, cu testele din `tests/auth/` neschimbate
+      și trecute înainte și după mutare; nicio altă interogare peste tabelele
       altor module în afara lui și a `repository.ts` al proprietarului.
 - [ ] `createPendingUserFileStore` din `modules/auth/service.ts` a fost șters, iar `app.ts` și
       `worker.ts` dau serviciului `auth` `documents.userFiles` (design 8, Q43).
@@ -42,9 +44,13 @@ Referințe: `docs/design/documents.md` (secțiunile din paranteze), ADR-0003, AD
 - [ ] Tipul declarat de browser nu se folosește; conținutul trebuie să corespundă extensiei. *(testat)*
 - [ ] Limita zilnică este atomică per student și numără și documentele șterse logic. *(testat)*
 - [ ] Limitele se citesc din CONFIGURARE la fiecare cerere. *(testat)*
-- [ ] Un PDF cu prea multe pagini este respins la încărcare, fără extragerea textului, cu timeout și
-      limită de memorie; un PDF care nu poate fi numărat este acceptat și decide analiza (design
-      2.5, Q48).
+- [ ] Un PDF cu prea multe pagini este respins la încărcare, fără extragerea textului. *(testat)*
+- [ ] Un PDF corupt sau protejat este acceptat și decide analiza (M06). *(testat)*
+- [ ] Un PDF la care numărarea atinge timeout-ul sau limita de memorie este respins ca „fișier prea
+      complex” (`FILE_TOO_LARGE`, `exceeded = complexity`). *(testat cu un numărător înlocuit)*
+- [ ] **Numărătorul real** rulează într-un fir separat, cu timeout și limită de memorie din
+      configurare, iar valorile de 5 s și 256 MB au fost măsurate pe PDF-uri reale (design 2.5).
+      Măsurătorile sunt consemnate în Q48.
 - [ ] Un fișier respins nu lasă rând sau fișier pe disc. *(testat)*
 
 ## C. Textul structurat (3)

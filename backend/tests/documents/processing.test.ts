@@ -6,6 +6,7 @@ import {
   buildDocumentsTestApp,
   createSubject,
   documentRow,
+  fakePageCounter,
   getDocument,
   processQueue,
   readyDocument,
@@ -22,6 +23,9 @@ import { expectPassagesOfAtLeast100Words, expectValidStructure } from '../helper
  * "unforeseen" cells: C-08 (deleted while processing), C-09 (reprocess while processing),
  * C-10 (result after the time limit). Design: section 4.
  */
+/** More than two pages of 3000 characters (Q16): over a limit of 2 pages. */
+const LONG_TEXT = prose(16, 5, 12);
+
 describe('document processing and states (RF4, C-08, C-09, C-10)', () => {
   let ctx: DocumentsTestApp;
   let user: TestUser;
@@ -178,14 +182,15 @@ describe('document processing and states (RF4, C-08, C-09, C-10)', () => {
       expect(body).toMatchObject({ status: 'error', error: { code: 'TEXT_NOT_EXTRACTABLE' } });
     });
 
-    it('a document over the page limit is FILE_TOO_LARGE, with message M05, and stores no text (Q48)', async () => {
+    it('a TXT over the page limit is FILE_TOO_LARGE at analysis, with message M05, and stores no text (Q48)', async () => {
+      // DOCX and TXT have no fixed pages (Q16): their pages are known only from the extracted text.
       const limited = await buildDocumentsTestApp({ UPLOAD_MAX_PAGES: '2' });
       try {
         const student = await registerStudent(limited.app);
         const subject = await createSubject(limited.app, student);
         const id = await upload(limited.app, student, subject, {
-          fileName: 'lung.pdf',
-          content: pdf([wrap(asciiProse(3)), wrap(asciiProse(3)), wrap(asciiProse(3))]),
+          fileName: 'lung.txt',
+          content: txt(LONG_TEXT), // more than 6000 characters: 3 pages of 3000, over the limit of 2
         });
         await processQueue(limited.app);
         const body = (await getDocument(limited.app, student, id)).json();
@@ -200,6 +205,26 @@ describe('document processing and states (RF4, C-08, C-09, C-10)', () => {
             )
           ).rows[0].n,
         ).toBe(0);
+      } finally {
+        await limited.close();
+      }
+    });
+
+    it('the analysis is the safety net for a PDF too: a count that was missing at upload does not let it through (Q48)', async () => {
+      const limited = await buildDocumentsTestApp(
+        { UPLOAD_MAX_PAGES: '2' },
+        { pdfPageCounter: fakePageCounter({ kind: 'unreadable' }) },
+      );
+      try {
+        const student = await registerStudent(limited.app);
+        const subject = await createSubject(limited.app, student);
+        const id = await upload(limited.app, student, subject, {
+          fileName: 'lung.pdf',
+          content: pdf([wrap(asciiProse(3)), wrap(asciiProse(3)), wrap(asciiProse(3))]),
+        });
+        await processQueue(limited.app);
+        const body = (await getDocument(limited.app, student, id)).json();
+        expect(body).toMatchObject({ status: 'error', error: { code: 'FILE_TOO_LARGE' } });
       } finally {
         await limited.close();
       }

@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { crc32 } from 'node:zlib';
 
 /**
@@ -125,12 +126,50 @@ export function docx(paragraphs: string[]): Buffer {
 const pdfString = (text: string) =>
   text.replaceAll('\\', '\\\\').replaceAll('(', '\\(').replaceAll(')', '\\)');
 
+/** RC4, written out because OpenSSL 3 no longer offers it; only for the encrypted fixture. */
+function rc4(key: Buffer, data: Buffer): Buffer {
+  const s = Array.from({ length: 256 }, (_, i) => i);
+  let j = 0;
+  for (let i = 0; i < 256; i += 1) {
+    j = (j + s[i]! + key[i % key.length]!) & 255;
+    [s[i], s[j]] = [s[j]!, s[i]!];
+  }
+  const out = Buffer.alloc(data.length);
+  let a = 0;
+  let b = 0;
+  for (let n = 0; n < data.length; n += 1) {
+    a = (a + 1) & 255;
+    b = (b + s[a]!) & 255;
+    [s[a], s[b]] = [s[b]!, s[a]!];
+    out[n] = data[n]! ^ s[(s[a]! + s[b]!) & 255]!;
+  }
+  return out;
+}
+
+const PDF_PADDING = Buffer.from(
+  '28bf4e5e4e758a4164004e56fffa01082e2e00b6d0683e802f0ca9fe6453697a',
+  'hex',
+);
+const md5 = (...parts: Buffer[]) => createHash('md5').update(Buffer.concat(parts)).digest();
+
+/** The /Encrypt entries of a password-protected PDF (standard handler, V1 R2, 40-bit RC4). */
+function pdfEncryption(userPassword: string, id: Buffer) {
+  const padded = (password: string) =>
+    Buffer.concat([Buffer.from(password, 'latin1'), PDF_PADDING]).subarray(0, 32);
+  const owner = rc4(md5(padded('owner-password')).subarray(0, 5), padded(userPassword));
+  const permissions = Buffer.from([0xfc, 0xff, 0xff, 0xff]); // -4
+  const key = md5(padded(userPassword), owner, permissions, id).subarray(0, 5);
+  const user = rc4(key, PDF_PADDING);
+  return `<< /Filter /Standard /V 1 /R 2 /O <${owner.toString('hex')}> /U <${user.toString('hex')}> /P -4 >>`;
+}
+
 /**
  * A minimal, valid PDF. Each page is a list of lines (ASCII only: the built-in Helvetica font
  * has no Romanian diacritics). An empty string leaves a blank line, i.e. starts a paragraph.
- * A page with no lines has no text at all, like a scanned page.
+ * A page with no lines has no text at all, like a scanned page. With `password`, the file asks
+ * for it before it can be opened (its streams are not really encrypted: enough to be refused).
  */
-export function pdf(pages: string[][]): Buffer {
+export function pdf(pages: string[][], options: { password?: string } = {}): Buffer {
   const objects: string[] = [];
   const add = (body: string) => objects.push(body);
   const pageObjectNumbers = pages.map((_, index) => 4 + index * 2);
@@ -155,6 +194,10 @@ export function pdf(pages: string[][]): Buffer {
     add(`<< /Length ${Buffer.byteLength(stream, 'latin1')} >>\nstream\n${stream}\nendstream`);
   }
 
+  const id = Buffer.from('0123456789abcdef', 'latin1');
+  if (options.password !== undefined) add(pdfEncryption(options.password, id));
+  const encryptNumber = objects.length;
+
   let output = '%PDF-1.4\n';
   const offsets: number[] = [];
   for (const [index, body] of objects.entries()) {
@@ -164,7 +207,11 @@ export function pdf(pages: string[][]): Buffer {
   const xref = Buffer.byteLength(output, 'latin1');
   output += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
   for (const offset of offsets) output += `${String(offset).padStart(10, '0')} 00000 n \n`;
-  output += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`;
+  const trailer =
+    options.password === undefined
+      ? `<< /Size ${objects.length + 1} /Root 1 0 R >>`
+      : `<< /Size ${objects.length + 1} /Root 1 0 R /Encrypt ${encryptNumber} 0 R /ID [<${id.toString('hex')}> <${id.toString('hex')}>] >>`;
+  output += `trailer\n${trailer}\nstartxref\n${xref}\n%%EOF\n`;
   return Buffer.from(output, 'latin1');
 }
 

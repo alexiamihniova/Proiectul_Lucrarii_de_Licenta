@@ -3,6 +3,7 @@ import type { WorkerTask } from '../../core/worker.js';
 import type {
   DocumentsService,
   DocumentsServiceDeps,
+  PdfPageCounter,
   ExtractedText,
   StructuredText,
   TextExtractor,
@@ -54,6 +55,11 @@ export function structureText(
   _extracted: ExtractedText,
   _options: { maxPages: number },
 ): StructuredText {
+  throw new AppError('NOT_IMPLEMENTED');
+}
+
+/** The page counter for PDF files at upload: a thread with a timeout and a memory limit (2.5). */
+export function createPdfPageCounter(): PdfPageCounter {
   throw new AppError('NOT_IMPLEMENTED');
 }
 

@@ -21,7 +21,11 @@ import {
 import type { SendPasswordResetEmail, UserFileStore } from './modules/auth/service.js';
 import { contentRouter } from './modules/content/router.js';
 import { documentsRouter } from './modules/documents/router.js';
-import type { AnalyseDocument, TextExtractor } from './modules/documents/service.js';
+import type {
+  AnalyseDocument,
+  PdfPageCounter,
+  TextExtractor,
+} from './modules/documents/service.js';
 import { createLlmClient } from './modules/llm/service.js';
 import type { LLMClient } from './modules/llm/service.js';
 import { masteryRouter } from './modules/mastery/router.js';
@@ -55,6 +59,8 @@ export interface AppDependencies {
   analyseDocument?: AnalyseDocument;
   /** Reads the text of uploaded files. Defaults to the extractor for PDF, DOCX and TXT. */
   textExtractor?: TextExtractor;
+  /** Counts the pages of a PDF at upload. Defaults to the one that reads the page tree in a thread. */
+  pdfPageCounter?: PdfPageCounter;
   /** Receives every log line; lets tests check what is and is not logged. */
   logStream?: LogStream;
 }

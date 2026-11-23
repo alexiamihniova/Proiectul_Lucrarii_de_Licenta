@@ -26,6 +26,7 @@ Marcaje: **[SRS]** = valoare luată din specificații; **[propus]** = valoare pr
 | Încărcări pe zi                       | 10, resetate la 00:00 ora Chișinăului   | [SRS] P6, C-07   | CONFIGURARE `uploads_per_day` (1–50), `APP_TIMEZONE` |
 | Lungimea unui pasaj                   | 100–300 de cuvinte                      | [SRS] RF4        | fix                               |
 | Text minim                            | 200 de caractere                        | [SRS] RF4, M06   | fix                               |
+| Numărarea paginilor unui PDF, la încărcare | 5 s și 256 MB de memorie, **provizorii** | [propus] Q48; de măsurat în 2B | `PDF_PAGE_COUNT_TIMEOUT_SECONDS`, `PDF_PAGE_COUNT_MEMORY_MB` |
 | Limita de timp a analizei             | 60 s, **provizorie**                    | [Dosar] PE, C-10; [SRS] T2 doar pentru ≤ 50 de pagini; Q53 | `DOCUMENT_PROCESSING_TIMEOUT_SECONDS` |
 | Numele documentului                   | 1–255 de caractere                      | [propus]         | fix                               |
 | Păstrarea rândurilor șterse logic     | 48 de ore                               | [propus] Q12     | `DELETED_DOCUMENT_RETENTION_HOURS` |
@@ -62,7 +63,7 @@ Marcaje: **[SRS]** = valoare luată din specificații; **[propus]** = valoare pr
 | 3   | Extensia este `.pdf`, `.docx` sau `.txt` (fără majuscule)            | `415 UNSUPPORTED_FILE_FORMAT` (M04)       |
 | 4   | Conținutul corespunde extensiei (2.2)                                | `415 UNSUPPORTED_FILE_FORMAT` (M04)       |
 | 5   | Dimensiunea ≤ `max_file_size_mb`                                     | `413 FILE_TOO_LARGE` (M05)                |
-| 6   | Numai PDF: numărul de pagini ≤ `UPLOAD_MAX_PAGES` (2.5, Q48)         | `413 FILE_TOO_LARGE` (M05)                |
+| 6   | Numai PDF: numărul de pagini ≤ `UPLOAD_MAX_PAGES`, numărat în limite de timp și memorie (2.5, Q48) | `413 FILE_TOO_LARGE` (M05), pentru prea multe pagini sau pentru un fișier prea complex |
 | 7   | Încărcările de azi < `uploads_per_day`                               | `429 DAILY_UPLOAD_LIMIT_REACHED` (M08)    |
 
 Formatul, dimensiunea și, pentru PDF, numărul de pagini se verifică înainte de salvare (RF3, Q48). Tipul `Content-Type` declarat de
@@ -74,7 +75,7 @@ nu lasă nimic pe disc sau în bază.
 | Eroare                        | `details`                                                        |
 | ----------------------------- | ---------------------------------------------------------------- |
 | `UNSUPPORTED_FILE_FORMAT`     | `{ "allowed": ["pdf", "docx", "txt"] }`                          |
-| `FILE_TOO_LARGE`              | `{ "exceeded": "size" \| "pages", "limit_mb": 20, "limit_pages": 100 }`, plus `"pages": <număr găsit>` când depășirea este de pagini |
+| `FILE_TOO_LARGE`              | `{ "exceeded": "size", "limit_mb": 20, "limit_pages": 100 }`; sau `{ "exceeded": "pages", "limit_mb", "limit_pages", "pages": <numărul găsit> }`; sau `{ "exceeded": "complexity", "reason": "timeout" \| "memory", "limit_mb", "limit_pages" }` |
 | `DAILY_UPLOAD_LIMIT_REACHED`  | `{ "limit": 10, "resets_at": "<ISO 8601>" }`                     |
 
 Un fișier peste limita tehnică (`UPLOAD_HARD_LIMIT_MB`) primește tot `413 FILE_TOO_LARGE`.
@@ -115,23 +116,43 @@ avea același nume. Analiza pornește în fundal (secțiunea 4).
 ### 2.5 Numărul de pagini al unui PDF, la încărcare (Q48)
 
 Pentru un PDF, numărul de pagini se află înainte de salvare, **fără extragerea textului**: se
-citește numai structura fișierului (arborele de pagini), nu conținutul paginilor.
+citește numai structura fișierului (arborele de pagini), nu conținutul paginilor. Numărarea este un
+port (`PdfPageCounter`, în `types.ts`); implementarea implicită rulează într-un fir de execuție
+separat (`worker_threads`) cu limită de memorie (`resourceLimits.maxOldGenerationSizeMb`) și cu
+timeout, după care firul se oprește. Cererea HTTP așteaptă rezultatul. Valorile vin din
+configurare: `PDF_PAGE_COUNT_TIMEOUT_SECONDS` (propus 5) și `PDF_PAGE_COUNT_MEMORY_MB` (propus 256).
 
-- **Timeout și memorie.** Numărarea rulează într-un fir de execuție separat (`worker_threads`)
-  cu limită de memorie (`resourceLimits.maxOldGenerationSizeMb`, propus 256) și cu timeout
-  (propus 5 s), după care firul se oprește. Cererea HTTP așteaptă rezultatul.
-- **Rezultatul.** Mai multe pagini decât `UPLOAD_MAX_PAGES` → `413 FILE_TOO_LARGE`
-  (`details.exceeded = "pages"`), fără rând, fără fișier și fără să consume din limita zilnică.
-- **Dacă paginile nu pot fi numărate** (fișier corupt sau protejat, timeout, memorie depășită),
-  încărcarea **nu** se respinge: reușește, iar analiza decide (M06 pentru un fișier ilizibil). Un
-  PDF care nu se poate număra nu este nici „prea mare”, nici „neacceptat”; mesajul corect îl dă
-  analiza.
+**Cele patru rezultate** (`PageCountOutcome`) și ce face încărcarea cu fiecare:
+
+| Rezultat                                   | Încărcarea                                                                                      |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------------- |
+| `pages`, cel mult `UPLOAD_MAX_PAGES`        | continuă                                                                                        |
+| `pages`, mai mult decât limita              | `413 FILE_TOO_LARGE`, `details.exceeded = "pages"`, cu `pages` = numărul găsit                  |
+| `unreadable`: fișier corupt, protejat cu parolă sau care nu este un PDF real | **continuă**; analiza decide (`TEXT_NOT_EXTRACTABLE`, M06) |
+| `timeout` sau `memory`: numărarea a atins o limită | `413 FILE_TOO_LARGE`, `details.exceeded = "complexity"`, `details.reason = "timeout"` sau `"memory"`, cu mesajul propriu „Fișierul este prea complex pentru a fi verificat. Încarcă o variantă mai simplă sau mai mică.” |
+
+Diferența are un motiv: un fișier corupt sau protejat nu este „prea mare”, iar mesajul corect îl dă
+analiza (M06). Un fișier la care numărarea nu se termină în limite este însă un risc pentru server
+și nu are rost să ajungă la analiză: se refuză la încărcare, ca să nu consume timp sau memorie
+nici acolo.
+
+- **Codul de eroare.** Se reutilizează `FILE_TOO_LARGE` (M05, „Încarcă o variantă mai mică”), cu
+  `details.exceeded = "complexity"` și un mesaj propriu. Nu se adaugă un cod nou în catalog; dacă
+  interfața are nevoie de unul distinct (de exemplu `FILE_TOO_COMPLEX`), se decide la Segmentul 6
+  (Q48).
+- **Ca orice fișier refuzat:** niciun rând, niciun fișier pe disc, nicio folosire din limita zilnică.
+- **Ordinea.** Numărarea se face doar pentru PDF, după verificările de format și dimensiune, și
+  **înainte** de limita zilnică: un PDF prea lung primește 413 chiar dacă limita zilnică s-a
+  epuizat.
+- **Un defect al numărătorului** (o excepție în loc de un rezultat) nu blochează încărcarea: se
+  jurnalizează ca eroare, fără numele fișierului, iar încărcarea continuă; analiza rămâne plasa de
+  siguranță.
 - **Plasa de siguranță.** Verificarea de la analiză (3.6) rămâne pentru toate formatele, fiindcă
-  numărul de la încărcare poate lipsi sau poate diferi de cel din extragere.
-- **Valorile 256 MB și 5 s** sunt propuse și nu sunt validate. Dacă 2B găsește costul numărării
-  prea mare (de exemplu peste 1 s pentru un PDF de 20 MB, sau memorie nelimitabilă în fir), revine
-  la „doar la analiză” și consemnează motivul și măsurătorile în Q48. Nu schimbă contractul altfel
-  decât prin lipsa respingerii la încărcare.
+  numărul de la încărcare poate lipsi (`unreadable`, defect) sau poate diferi de cel din
+  extragere: un PDF peste limită, care a trecut, ajunge în „Eroare” cu `FILE_TOO_LARGE`.
+- **Valorile 256 MB și 5 s sunt provizorii, de măsurat în 2B** pe PDF-uri reale (de exemplu de
+  20 MB, cu multe pagini sau cu imagini). Dacă 2B găsește costul numărării prea mare, sau memoria
+  nelimitabilă în fir, revine la „doar la analiză” și consemnează motivul și măsurătorile în Q48.
 - DOCX și TXT nu se numără la încărcare: nu au pagini fixe (Q16), iar numărul se află abia din
   textul extras.
 
@@ -446,14 +467,13 @@ Nimic din Segmentul 2 nu apelează modelul de limbaj; ADR-0012 se aplică de la 
 
 ## 11. Ce are de făcut Segmentul 2B
 
-0. **Corecție de 2A, înainte de 2B.** Decizia Q48 contrazice un test: în `processing.test.ts`,
-   „a document over the page limit is FILE_TOO_LARGE … stores no text (Q48)” încarcă un PDF peste
-   limită și cere ca încărcarea să reușească. Se corectează în 2A, într-un commit separat, cu
-   aprobarea autoarei: testul trece pe DOCX/TXT sau pe un PDF care nu poate fi numărat, și se
-   adaugă teste pentru respingerea la încărcare (413, fără rând, fără fișier, fără consum din
-   limita zilnică), pentru PDF-ul corupt acceptat la încărcare și pentru timeout. Până atunci
-   `tests/documents/` nu este complet pentru Q48.
-
+0. **Corecția din 2A (făcută 23.11.2026).** Decizia Q48 a cerut corectarea unui test și teste noi:
+   `processing.test.ts` verifică acum pagina-limită pentru un TXT, la analiză, și plasa de
+   siguranță pentru un PDF care nu a putut fi numărat; `pdf-page-limit.test.ts` (19 teste)
+   acoperă respingerea la încărcare, PDF-ul corupt sau protejat acceptat, `timeout` și `memory`
+   respinse ca fișier prea complex, limitele date numărătorului, ordinea verificărilor și un
+   numărător defect. Numărătorul este un port (`PdfPageCounter`); testele de timeout și memorie îl
+   înlocuiesc, deci **măsurarea reală a limitelor este a lui 2B**.
 1. **Migrare**: tabelul `sentences` (3.1), cu inversa scrisă de mână; indexul unic al materiilor
    devine `(user_id, lower(name))` (Q17). `docs/DATA_MODEL.md` și testul „exact 16 tabele”
    trec la 17. Fabrica de rânduri din `tests/helpers/db.ts` primește `sentence`.
@@ -470,8 +490,10 @@ Nimic din Segmentul 2 nu apelează modelul de limbaj; ADR-0012 se aplică de la 
    transversale; excepția ESLint numai pentru acest folder; `readStudyData` se mută din
    `modules/auth/repository.ts`, iar `exportAccount` îl apelează prin serviciu; numărătorile
    `concept_count` și `due_concept_count` vin de acolo. Un test cu doi studenți pentru fiecare
-   funcție. Testele din `tests/auth/` rămân neschimbate și trec.
-4c. Numărarea paginilor unui PDF la încărcare (2.5), cu timeout și limită de memorie.
+   funcție. **Mutarea se face cu testele din `tests/auth/` neschimbate: se rulează înainte de
+   mutare (trec) și după (trebuie să treacă), în special `account-export.test.ts`.**
+4c. `createPdfPageCounter` (2.5): numărarea paginilor unui PDF într-un fir separat, cu timeout și
+   limită de memorie din configurare; măsurarea valorilor de 5 s și 256 MB pe PDF-uri reale.
 5. `app.ts`: `app.decorate('documents', createDocumentsService(...))`; `userFiles` al serviciului
    `auth` devine `app.documents.userFiles`; se șterge `createPendingUserFileStore`.
    `worker.ts`: `documentsWorkerTasks`.

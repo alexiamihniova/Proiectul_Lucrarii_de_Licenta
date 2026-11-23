@@ -35,7 +35,8 @@ nedeclarată, greu de găsit și de verificat.
 ## Consecințe
 
 - 2B adaugă modulul, excepția ESLint și mută exportul din `auth` (a doua parte atinge cod din
-  Segmentul 1; testele din `tests/auth/` rămân neschimbate și trebuie să treacă).
+  Segmentul 1). Testele din `tests/auth/` rămân neschimbate și se rulează **înainte** de mutare
+  (trec) și **după** (trebuie să treacă).
 - Un test cu doi studenți verifică, pentru fiecare funcție, că nu întoarce datele altuia.
 - Lista funcțiilor din `shared-queries` este în `docs/design/documents-checklist.md` și se
   revizuiește la fiecare segment: ce poate trece pe serviciul unui modul proprietar trece. Segmentul 5

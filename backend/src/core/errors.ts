@@ -85,7 +85,11 @@ export const ERRORS = {
     srs: 'M04',
     message: 'Formatul fișierului nu este acceptat. Încarcă un PDF, DOCX sau TXT.',
   },
-  /** details = { exceeded: 'size' | 'pages', limit_mb, limit_pages } */
+  /**
+   * details = { exceeded: 'size' | 'pages' | 'complexity', limit_mb, limit_pages }, plus
+   * `pages` (the count found) when exceeded = 'pages', and `reason` ('timeout' | 'memory') when
+   * exceeded = 'complexity': a PDF whose pages could not be counted within the limits (Q48).
+   */
   FILE_TOO_LARGE: {
     status: 413,
     srs: 'M05',

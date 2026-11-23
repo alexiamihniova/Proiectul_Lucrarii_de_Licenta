@@ -11,7 +11,11 @@ import type { ErrorCode } from '../../src/core/errors.js';
 import { AppError } from '../../src/core/errors.js';
 import { createDatabase } from '../../src/db/client.js';
 import type { Database } from '../../src/db/client.js';
-import type { TextExtractor } from '../../src/modules/documents/service.js';
+import type {
+  PageCountOutcome,
+  PdfPageCounter,
+  TextExtractor,
+} from '../../src/modules/documents/service.js';
 import { FakeLLMClient } from '../../src/modules/llm/service.js';
 import { createTestPool } from './db.js';
 import { testConfig } from './env.js';
@@ -71,7 +75,7 @@ function listFiles(root: string, prefix = ''): string[] {
  */
 export async function buildDocumentsTestApp(
   env: NodeJS.ProcessEnv = {},
-  overrides: { textExtractor?: TextExtractor } = {},
+  overrides: { textExtractor?: TextExtractor; pdfPageCounter?: PdfPageCounter } = {},
 ): Promise<DocumentsTestApp> {
   const uploadDir = mkdtempSync(join(tmpdir(), 'recap-uploads-'));
   const config = testConfig({ ...TEST_ENV, UPLOAD_DIR: uploadDir, ...env });
@@ -116,6 +120,7 @@ export async function buildDocumentsTestApp(
     llm: new FakeLLMClient(),
     logStream: { write: (line) => void logs.push(line) },
     ...(overrides.textExtractor ? { textExtractor: overrides.textExtractor } : {}),
+    ...(overrides.pdfPageCounter ? { pdfPageCounter: overrides.pdfPageCounter } : {}),
     analyseDocument: async ({ documentId }, signal) => {
       calls.push(documentId);
       lastSignal = signal;
@@ -302,4 +307,22 @@ export async function backdateDeletedDocument(
   } finally {
     client.release();
   }
+}
+
+/** A page counter that answers what the test says and records how it was called (Q48). */
+export interface FakePageCounter extends PdfPageCounter {
+  calls: { content: Buffer; limits: { timeoutMs: number; maxMemoryMb: number } }[];
+}
+
+export function fakePageCounter(
+  answer: PageCountOutcome | (() => PageCountOutcome | Promise<PageCountOutcome>),
+): FakePageCounter {
+  const calls: FakePageCounter['calls'] = [];
+  return {
+    calls,
+    count: async (content, limits) => {
+      calls.push({ content, limits });
+      return typeof answer === 'function' ? answer() : answer;
+    },
+  };
 }

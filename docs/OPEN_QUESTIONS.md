@@ -66,7 +66,7 @@ dacă decizia schimbă schema sau contractul, segmentul respectiv face migrarea 
 | Q50 | Interogări de citire peste tabelele altor module: un singur loc (`shared-queries`) | 1, 2, 5 | Confirmată |
 | Q51 | Conceptele rămase fără pasaje după ștergerea unui document | 2, 3 | Amânată (3) |
 | Q52 | Analiza înainte de Segmentul 3: documentul devine „Gata” fără concepte | 2, 3 | Amânată (3) |
-| Q53 | Limita de 60 s pentru analiză: valoare provizorie | 2, 3 | Deschisă (provizorie) |
+| Q53 | Limita de 60 s pentru analiză: valoare provizorie | 2, 3 | Confirmată (provizorie) |
 
 ---
 
@@ -543,16 +543,21 @@ dacă decizia schimbă schema sau contractul, segmentul respectiv face migrarea 
   nu au pagini fixe (Q16). Verificarea de la analiză rămâne la toate formatele, ca plasă de
   siguranță. Dacă 2B găsește costul numărării la încărcare prea mare, revine la „doar la analiză”
   și notează aici motivul și măsurătorile.
+- **Decizie (23.11.2026), precizare.** Se deosebesc două situații. Un PDF **corupt sau protejat cu
+  parolă** se acceptă la încărcare, iar analiza decide (M06). Un PDF la care **numărarea atinge
+  limita de timp sau de memorie** se refuză la încărcare ca „fișier prea complex”.
+- **Codul de eroare.** `FILE_TOO_LARGE` (M05), cu `details.exceeded = "complexity"`,
+  `details.reason = "timeout" | "memory"` și mesajul propriu „Fișierul este prea complex pentru a
+  fi verificat. Încarcă o variantă mai simplă sau mai mică.”. Nu s-a adăugat un cod nou în catalog;
+  dacă interfața are nevoie de unul distinct (`FILE_TOO_COMPLEX`), se adaugă la Segmentul 6.
+- **Valori provizorii, de măsurat în 2B:** 5 s și 256 MB pentru numărare
+  (`PDF_PAGE_COUNT_TIMEOUT_SECONDS`, `PDF_PAGE_COUNT_MEMORY_MB`).
 - **Ambiguitate.** RF3: „Formatul și dimensiunea se verifică înainte de salvare”; despre pagini nu
   spune când. Numărul de pagini se află doar citind fișierul, iar pentru DOCX și TXT doar după
   extragerea textului.
-- **Detalii (design 2.5).** Un PDF cu mai multe pagini decât limita primește `413 FILE_TOO_LARGE`
-  (M05) imediat și nu consumă din limita zilnică. Dacă paginile nu pot fi numărate (fișier
-  corupt sau protejat, timeout, memorie), încărcarea reușește și decide analiza (M06).
-- **Acum.** Contractul și designul presupun varianta decisă. **Atenție:** un test din 2A
-  (`processing.test.ts`, „a document over the page limit … (Q48)”) încarcă un PDF peste limită și
-  cere ca încărcarea să reușească; contrazice decizia și trebuie corectat înainte de 2B (design 11,
-  punctul 0).
+- **Acum.** Specificația din `backend/tests/documents/` (`pdf-page-limit.test.ts`,
+  `processing.test.ts`) o descrie; numărătorul este un port, iar măsurarea limitelor reale este a
+  lui 2B (design 2.5).
 
 ### Q49. Citirea configurărilor înainte de Segmentul 7
 
@@ -578,6 +583,8 @@ dacă decizia schimbă schema sau contractul, segmentul respectiv face migrarea 
   un apel pentru fiecare rând al listei, de aceea nu se face prin ele.
 - **Obligația din Q45 rămâne:** Segmentul 5 poate trece exportul pe serviciile modulelor; atunci
   funcția respectivă dispare din `shared-queries`. Numărătorile pot rămâne acolo definitiv.
+- **Verificarea mutării (23.11.2026).** Testele din `tests/auth/` rămân neschimbate și trebuie să treacă
+  atât înainte, cât și după mutare.
 - **Acum.** Mutarea și excepția ESLint sunt în lista de lucru a lui 2B; până atunci exportul
   citește încă din `modules/auth/repository.ts`.
 
@@ -618,6 +625,8 @@ dacă decizia schimbă schema sau contractul, segmentul respectiv face migrarea 
   reale. Dacă 60 s nu ajunge: fie se ridică valoarea (este configurabilă, 1–600 s), fie limita
   depinde de numărul de pagini; în ambele cazuri se actualizează SRS (RNF2) sau se consemnează
   abaterea.
+- **Decizie (23.11.2026).** Confirmat ca **valoare configurabilă**, de validat în Segmentul 3 pe un
+  document real de 100 de pagini.
 - **Acum.** 60 s, configurabil. Nu schimbă nimic în 2B.
 
 ---

@@ -70,6 +70,8 @@ const envSchema = z
     DEFAULT_MAX_FILE_SIZE_MB: int(1, 50).default(20),
     DEFAULT_UPLOADS_PER_DAY: int(1, 50).default(10),
     DOCUMENT_PROCESSING_TIMEOUT_SECONDS: int(1, 600).default(60),
+    PDF_PAGE_COUNT_TIMEOUT_SECONDS: int(1, 60).default(5),
+    PDF_PAGE_COUNT_MEMORY_MB: int(64, 2048).default(256),
     DELETED_DOCUMENT_RETENTION_HOURS: int(1, 720).default(48),
 
     WORKER_POLL_INTERVAL_MS: int(100, 60_000).default(1000),
@@ -153,6 +155,10 @@ export interface Config {
   documents: {
     /** T2, event PE: a document still `processing` after this long becomes `error`. */
     processingTimeoutSeconds: number;
+    /** Q48: counting the pages of a PDF at upload is stopped after this long (provisional). */
+    pageCountTimeoutSeconds: number;
+    /** Q48: and when the counting thread needs more memory than this (provisional). */
+    pageCountMemoryMb: number;
     /** Q12: soft-deleted rows are removed for good after this long. */
     deletedRetentionHours: number;
   };
@@ -210,6 +216,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     },
     documents: {
       processingTimeoutSeconds: e.DOCUMENT_PROCESSING_TIMEOUT_SECONDS,
+      pageCountTimeoutSeconds: e.PDF_PAGE_COUNT_TIMEOUT_SECONDS,
+      pageCountMemoryMb: e.PDF_PAGE_COUNT_MEMORY_MB,
       deletedRetentionHours: e.DELETED_DOCUMENT_RETENTION_HOURS,
     },
     auth: {

@@ -52,6 +52,34 @@ export interface TextExtractor {
   ): Promise<ExtractedText>;
 }
 
+// --- counting the pages of a PDF at upload (design 2.5; Q48) -------------------------------
+
+/**
+ * What came of counting the pages of a PDF without extracting its text.
+ *  - `pages`: the count (the page tree only, never the content of the pages);
+ *  - `unreadable`: the file is corrupt, encrypted or not a real PDF — the upload goes on and
+ *    the analysis decides (M06);
+ *  - `timeout`, `memory`: counting was stopped by the limits — the file is refused as too complex.
+ */
+export type PageCountOutcome =
+  | { kind: 'pages'; pages: number }
+  | { kind: 'unreadable' }
+  | { kind: 'timeout' }
+  | { kind: 'memory' };
+
+/**
+ * Counts the pages of a PDF at upload. A port: the default implementation reads the page tree in
+ * a separate thread with the given limits; tests inject another one through
+ * `AppDependencies.pdfPageCounter`. It must not throw for the outcomes above; an exception is
+ * a defect, and the upload then goes on (design 2.5).
+ */
+export interface PdfPageCounter {
+  count(
+    content: Buffer,
+    limits: { timeoutMs: number; maxMemoryMb: number },
+  ): Promise<PageCountOutcome>;
+}
+
 // --- structured text (design 3; ADR-0013) ---------------------------------------------------
 
 /** A sentence: the smallest unit of the document text. Offsets index the canonical text. */
@@ -125,6 +153,8 @@ export interface DocumentsServiceDeps {
   analyseDocument?: AnalyseDocument;
   /** Defaults to the extractor for PDF, DOCX and TXT. */
   textExtractor?: TextExtractor;
+  /** Defaults to the page counter that reads the PDF page tree in a thread. */
+  pdfPageCounter?: PdfPageCounter;
   /** Defaults to `() => new Date()`. */
   now?: () => Date;
 }
