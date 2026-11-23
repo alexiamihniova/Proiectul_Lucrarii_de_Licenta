@@ -28,6 +28,29 @@ export default tseslint.config(
     rules: { 'no-restricted-imports': ['error', { patterns: [crossModuleInternals] }] },
   },
   {
+    // Only a module's own `repository.ts` queries the database (CLAUDE.md, rule 4), with ONE
+    // exception: the folder `shared-queries`, the single place for read queries that cross
+    // module boundaries (ADR-0014). Anything else that needs a table of another module goes
+    // there; do not add a second exception.
+    files: ['src/modules/**/*.ts'],
+    ignores: ['src/modules/**/repository.ts', 'src/modules/shared-queries/**'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            crossModuleInternals,
+            {
+              group: ['**/db/schema/**', '**/db/schema', 'drizzle-orm', 'drizzle-orm/*'],
+              message:
+                'Only repository.ts queries the database; cross-module reads go through shared-queries (ADR-0014).',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     // The database schema is shared infrastructure, but only repositories may query it.
     files: ['src/modules/**/router.ts', 'src/modules/**/schemas.ts'],
     rules: {

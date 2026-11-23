@@ -143,7 +143,8 @@ legacy/     prototipul Express inițial, doar ca referință
 ```
 
 Backendul este împărțit în module care corespund segmentelor: `auth`, `documents`, `analysis`,
-`llm`, `content`, `mastery`, `reminders`, `admin`. Detalii în
+`llm`, `content`, `mastery`, `reminders`, `admin`, plus `shared-queries` (interogările de citire
+peste mai multe module, ADR-0014). Detalii în
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Segmentele următoare

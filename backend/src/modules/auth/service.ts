@@ -12,7 +12,8 @@ import {
   verifyPassword,
 } from './password.js';
 import type { FieldIssue } from './password.js';
-import { STUDY_DATA_COLUMNS, createAuthRepository, readStudyData } from './repository.js';
+import { STUDY_DATA_COLUMNS, readStudyData } from '../shared-queries/service.js';
+import { createAuthRepository } from './repository.js';
 import { EmailInput } from './schemas.js';
 import {
   fingerprintMatches,
@@ -294,7 +295,7 @@ export function createAuthService(deps: AuthServiceDeps): AuthService {
     async exportAccount(actor, format) {
       const user = await repository.findUserById(actor.userId);
       if (!user) throw new AppError('UNAUTHENTICATED');
-      const data = await readStudyData(deps.db, actor);
+      const data = await readStudyData(actor, deps.db);
       const current = now();
       const name = `recap-export-${current.toISOString().slice(0, 10)}`;
       auditLog(log, { action: 'account.exported', actor_id: actor.userId, target: { format } });

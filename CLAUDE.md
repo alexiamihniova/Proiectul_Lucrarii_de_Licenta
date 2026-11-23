@@ -72,6 +72,8 @@ verified by the `compose` job in CI.
 3. **`core/` holds infrastructure only**, no business rules. Shapes shared by several modules go
    in `core/api-schemas.ts`; closed value sets go in `core/domain.ts`.
 4. **Only `repository.ts` queries the database.** Routers and schemas never import from `db/`.
+   One exception, enforced by ESLint: read-only queries that cross module boundaries live in
+   `modules/shared-queries/` (ADR-0014). Do not add a second place.
 5. **Every route is declared with `endpoint()`** (`core/http.ts`). The app refuses to start
    otherwise. Routers never check roles or read cookies: the one global `onRequest` hook of the
    auth module does, from `config.auth`, and sets `request.user` and `request.actor`.
@@ -131,7 +133,8 @@ verified by the `compose` job in CI.
 ```
 backend/src/core/        config, errors, http helpers, logger, openapi, worker runtime, domain enums
 backend/src/db/          schema (17 tables), client, migrate, seed
-backend/src/modules/     auth, documents, analysis, llm, content, mastery, reminders, admin
+backend/src/modules/     auth, documents, analysis, llm, content, mastery, reminders, admin,
+                         shared-queries (read-only queries across modules, ADR-0014)
 backend/src/server.ts    HTTP entry point
 backend/src/worker.ts    background worker entry point (register tasks in collectTasks())
 backend/drizzle/         migrations: NNNN_name.sql (generated) + down/NNNN_name.sql (by hand)
