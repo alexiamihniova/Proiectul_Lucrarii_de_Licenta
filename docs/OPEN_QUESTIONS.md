@@ -550,8 +550,45 @@ dacă decizia schimbă schema sau contractul, segmentul respectiv face migrarea 
   `details.reason = "timeout" | "memory"` și mesajul propriu „Fișierul este prea complex pentru a
   fi verificat. Încarcă o variantă mai simplă sau mai mică.”. Nu s-a adăugat un cod nou în catalog;
   dacă interfața are nevoie de unul distinct (`FILE_TOO_COMPLEX`), se adaugă la Segmentul 6.
-- **Valori provizorii, de măsurat în 2B:** 5 s și 256 MB pentru numărare
-  (`PDF_PAGE_COUNT_TIMEOUT_SECONDS`, `PDF_PAGE_COUNT_MEMORY_MB`).
+- **Valorile numărării, măsurate în 2B (23.11.2026)** — `PDF_PAGE_COUNT_TIMEOUT_SECONDS` = 5 și
+  `PDF_PAGE_COUNT_MEMORY_MB` = 256; vezi „Măsurători” mai jos. **Numărarea rulează într-un proces
+  copil, nu într-un fir**: pe un fișier ostil, un fir care depășește limita de heap a oprit tot
+  procesul aplicației (cod de ieșire 134), deci nu este o izolare sigură.
+- **Măsurători (23.11.2026, macOS, Node 24, un procesor de laptop; ordine de mărime, nu garanții).**
+  Fișiere: 5 documente reale (rapoarte de laborator și un dosar, 2–36 de pagini, 0,1–8,6 MB), un
+  PDF criptat de macOS Quartz cu parolă de utilizator, două PDF-uri scanate (doar imagini; 28 de
+  pagini/10 MB și 100 de pagini/15 MB), un PDF cu două coloane făcut de CUPS, și PDF-uri cu 100,
+  101, 300 și 3000 de pagini formate din paginile unor documente reale.
+
+  | Fișier                                        | Rezultat       | Timp (mediană) |
+  | --------------------------------------------- | -------------- | -------------- |
+  | rapoarte și dosar reale (2–36 pagini)         | numărate       | 0,45–0,53 s    |
+  | document real de 8,6 MB                       | numărat        | 0,51 s         |
+  | scanat, 28 și 100 de pagini (10 și 15 MB)     | numărate       | 0,31–0,40 s    |
+  | două coloane (26 de pagini)                   | numărat        | 0,48 s         |
+  | criptat de alt program                        | `unreadable`   | 0,46 s         |
+  | 100, 101, 300, 3000 de pagini (până la 15 MB) | numărate       | 0,47–0,53 s    |
+
+  Primul apel al procesului: aprox. 1,2 s (încărcarea modulului). Heap necesar: **cel mult
+  16 MB** chiar și pentru 3000 de pagini sau 15 MB (la 8 MB rezultatul este `memory`); toate
+  fișierele de mai sus se numără și cu o limită de 64 MB. Fișiere ostile, cu limitele implicite:
+  20 MB de octeți aleatori după un antet PDF: `unreadable` în 1,3 s; un milion de obiecte fără
+  tabel de referințe (34 MB): `memory` în 4,6 s (2,9 s cu 128 MB, 2,2 s cu 64 MB); un arbore de
+  pagini adânc de 20 000 de niveluri sau care declară 100 de milioane de pagini: numărat în
+  0,6 s; o „bombă” Flate de 300 MB într-un conținut de pagină: numărată în 0,5 s (nu se
+  despachetează). 12 fișiere defecte de 4 MB trimise deodată: toate răspunse în 3,4 s, cu cel mult
+  4 procese simultan; memoria procesului aplicației nu crește.
+- **Concluzie.** 5 s este de peste 8 ori timpul unui fișier legitim (0,64 s cel mai lent, 1,2 s la
+  prima pornire) și oprește cazurile ostile la cel mult 5 s. **256 MB rămâne valoarea implicită**
+  fiindcă un test din 2A (`pdf-page-limit.test.ts`) o fixează; este de 16 ori mai mult decât
+  cere un fișier legitim, iar o valoare de 64 MB ar refuza fișierele ostile de două ori mai repede
+  fără să afecteze vreun fișier măsurat. Dacă vrei 64 MB ca valoare implicită, trebuie schimbat și
+  acel test (cu aprobarea ta); până atunci se poate seta `PDF_PAGE_COUNT_MEMORY_MB=64` în `.env`.
+- **Limite ale măsurătorilor.** Numai PDF-uri făcute de macOS, CUPS și programele care au produs
+  documentele reale; niciun PDF scanat real cu OCR, niciun PDF de 50 MB, nicio măsurătoare pe
+  Linux/Docker. Memoria în afara heap-ului (octeții fișierului) nu este limitată de
+  `--max-old-space-size`: în măsurători, procesul copil a rămas modest, dar o limită pe procesul
+  întreg (de exemplu `ulimit -v`) ar fi o a doua plasă; nu s-a pus.
 - **Ambiguitate.** RF3: „Formatul și dimensiunea se verifică înainte de salvare”; despre pagini nu
   spune când. Numărul de pagini se află doar citind fișierul, iar pentru DOCX și TXT doar după
   extragerea textului.

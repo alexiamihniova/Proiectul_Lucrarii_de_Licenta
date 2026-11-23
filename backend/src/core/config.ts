@@ -155,9 +155,9 @@ export interface Config {
   documents: {
     /** T2, event PE: a document still `processing` after this long becomes `error`. */
     processingTimeoutSeconds: number;
-    /** Q48: counting the pages of a PDF at upload is stopped after this long (provisional). */
+    /** Q48: counting the pages of a PDF at upload is killed after this long. */
     pageCountTimeoutSeconds: number;
-    /** Q48: and when the counting thread needs more memory than this (provisional). */
+    /** Q48: and when the counting process needs more heap than this. */
     pageCountMemoryMb: number;
     /** Q12: soft-deleted rows are removed for good after this long. */
     deletedRetentionHours: number;

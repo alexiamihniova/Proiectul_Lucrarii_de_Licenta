@@ -1,6 +1,6 @@
 import { AppError } from '../../core/errors.js';
 import type { WorkerTask } from '../../core/worker.js';
-import type { DocumentsService, DocumentsServiceDeps, PdfPageCounter } from './types.js';
+import type { DocumentsService, DocumentsServiceDeps } from './types.js';
 
 /**
  * Public surface of the documents module (Segment 2). Other modules import ONLY from this file.
@@ -40,10 +40,7 @@ export function createDocumentsService(_deps: DocumentsServiceDeps): DocumentsSe
 
 export { structureText } from './structure.js';
 
-/** The page counter for PDF files at upload: a thread with a timeout and a memory limit (2.5). */
-export function createPdfPageCounter(): PdfPageCounter {
-  throw new AppError('NOT_IMPLEMENTED');
-}
+export { createPdfPageCounter } from './pdf-pages.js';
 
 export { createTextExtractor } from './extractor.js';
 

@@ -26,7 +26,7 @@ Marcaje: **[SRS]** = valoare luată din specificații; **[propus]** = valoare pr
 | Încărcări pe zi                       | 10, resetate la 00:00 ora Chișinăului   | [SRS] P6, C-07   | CONFIGURARE `uploads_per_day` (1–50), `APP_TIMEZONE` |
 | Lungimea unui pasaj                   | 100–300 de cuvinte                      | [SRS] RF4        | fix                               |
 | Text minim                            | 200 de caractere                        | [SRS] RF4, M06   | fix                               |
-| Numărarea paginilor unui PDF, la încărcare | 5 s și 256 MB de memorie, **provizorii** | [propus] Q48; de măsurat în 2B | `PDF_PAGE_COUNT_TIMEOUT_SECONDS`, `PDF_PAGE_COUNT_MEMORY_MB` |
+| Numărarea paginilor unui PDF, la încărcare | 5 s și 256 MB de heap, într-un proces copil; **măsurate** în 2B (Q48) | [propus] Q48 | `PDF_PAGE_COUNT_TIMEOUT_SECONDS`, `PDF_PAGE_COUNT_MEMORY_MB` |
 | Limita de timp a analizei             | 60 s, **provizorie**                    | [Dosar] PE, C-10; [SRS] T2 doar pentru ≤ 50 de pagini; Q53 | `DOCUMENT_PROCESSING_TIMEOUT_SECONDS` |
 | Numele documentului                   | 1–255 de caractere                      | [propus]         | fix                               |
 | Păstrarea rândurilor șterse logic     | 48 de ore                               | [propus] Q12     | `DELETED_DOCUMENT_RETENTION_HOURS` |
@@ -117,9 +117,12 @@ avea același nume. Analiza pornește în fundal (secțiunea 4).
 
 Pentru un PDF, numărul de pagini se află înainte de salvare, **fără extragerea textului**: se
 citește numai structura fișierului (arborele de pagini), nu conținutul paginilor. Numărarea este un
-port (`PdfPageCounter`, în `types.ts`); implementarea implicită rulează într-un fir de execuție
-separat (`worker_threads`) cu limită de memorie (`resourceLimits.maxOldGenerationSizeMb`) și cu
-timeout, după care firul se oprește. Cererea HTTP așteaptă rezultatul. Valorile vin din
+port (`PdfPageCounter`, în `types.ts`); implementarea implicită rulează într-un **proces copil**
+(nu într-un fir de execuție) cu limită de heap (`--max-old-space-size`) și cu timeout, după care
+procesul este ucis. Cererea HTTP așteaptă rezultatul; cel mult 4 numărări rulează simultan,
+celelalte așteaptă. De ce proces și nu fir: măsurat pe fișiere ostile (Q48), un fir care depășește
+limita de heap se poate încheia cu o eroare fatală V8 care oprește **întregul proces al
+aplicației**, nu doar firul; un proces copil poate muri fără să afecteze serverul. Valorile vin din
 configurare: `PDF_PAGE_COUNT_TIMEOUT_SECONDS` (propus 5) și `PDF_PAGE_COUNT_MEMORY_MB` (propus 256).
 
 **Cele patru rezultate** (`PageCountOutcome`) și ce face încărcarea cu fiecare:
@@ -150,9 +153,10 @@ nici acolo.
 - **Plasa de siguranță.** Verificarea de la analiză (3.6) rămâne pentru toate formatele, fiindcă
   numărul de la încărcare poate lipsi (`unreadable`, defect) sau poate diferi de cel din
   extragere: un PDF peste limită, care a trecut, ajunge în „Eroare” cu `FILE_TOO_LARGE`.
-- **Valorile 256 MB și 5 s sunt provizorii, de măsurat în 2B** pe PDF-uri reale (de exemplu de
-  20 MB, cu multe pagini sau cu imagini). Dacă 2B găsește costul numărării prea mare, sau memoria
-  nelimitabilă în fir, revine la „doar la analiză” și consemnează motivul și măsurătorile în Q48.
+- **Valorile 5 s și 256 MB au fost măsurate în 2B (23.11.2026)**; rezultatele sunt în Q48. Numărarea
+  costă 0,3–0,6 s pe un fișier real; un fișier care nu poate fi deschis din cauza unei limite este
+  refuzat. Valoarea implicită de 256 MB este generoasă (un fișier legitim cere cel mult 16 MB);
+  `PDF_PAGE_COUNT_MEMORY_MB` o poate coborî fără modificări de cod.
 - DOCX și TXT nu se numără la încărcare: nu au pagini fixe (Q16), iar numărul se află abia din
   textul extras.
 
@@ -492,8 +496,8 @@ Nimic din Segmentul 2 nu apelează modelul de limbaj; ADR-0012 se aplică de la 
    `concept_count` și `due_concept_count` vin de acolo. Un test cu doi studenți pentru fiecare
    funcție. **Mutarea se face cu testele din `tests/auth/` neschimbate: se rulează înainte de
    mutare (trec) și după (trebuie să treacă), în special `account-export.test.ts`.**
-4c. `createPdfPageCounter` (2.5): numărarea paginilor unui PDF într-un fir separat, cu timeout și
-   limită de memorie din configurare; măsurarea valorilor de 5 s și 256 MB pe PDF-uri reale.
+4c. `createPdfPageCounter` (2.5): numărarea paginilor unui PDF într-un proces copil, cu timeout și
+   limită de heap din configurare; valorile au fost măsurate (Q48).
 5. `app.ts`: `app.decorate('documents', createDocumentsService(...))`; `userFiles` al serviciului
    `auth` devine `app.documents.userFiles`; se șterge `createPendingUserFileStore`.
    `worker.ts`: `documentsWorkerTasks`.
