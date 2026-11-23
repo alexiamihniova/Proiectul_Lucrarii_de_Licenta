@@ -24,8 +24,13 @@ Referințe: `docs/design/documents.md` (secțiunile din paranteze), ADR-0003, AD
       `docs/DATA_MODEL.md` este actualizat; testul care numără tabelele spune 17 și trece.
 - [ ] Fiecare dependență nouă (PDF, DOCX) este justificată în mesajul de commit sau într-un ADR.
 - [ ] `make lint`, `make check-generated` trec; `docs/openapi.json` este la zi.
-- [ ] `docs/OPEN_QUESTIONS.md`: Q46–Q52 au decizie sau sunt marcate explicit ca acceptate; Q12,
-      Q13, Q16, Q17 sunt confirmate.
+- [ ] `docs/OPEN_QUESTIONS.md`: Q12, Q13, Q16, Q17, Q46–Q50 sunt confirmate (23.11.2026); Q51 și Q52 sunt
+      amânate către Segmentul 3; Q53 (60 s) rămâne provizorie; Q48 are consemnate măsurătorile
+      numărării paginilor dacă 2B a revenit la „doar la analiză”.
+- [ ] Testul care contrazice Q48 a fost corectat în 2A înainte de 2B (design 11, punctul 0).
+- [ ] `modules/shared-queries/` există, cu excepția ESLint numai pentru acel folder (ADR-0014);
+      `readStudyData` s-a mutat din `auth/repository.ts`; nicio altă interogare peste tabelele
+      altor module în afara lui și a `repository.ts` al proprietarului.
 - [ ] `createPendingUserFileStore` din `modules/auth/service.ts` a fost șters, iar `app.ts` și
       `worker.ts` dau serviciului `auth` `documents.userFiles` (design 8, Q43).
 - [ ] În `docs/design/auth-checklist.md`, secțiunea G, obligația Segmentului 2 (Q43) este bifată.
@@ -37,6 +42,9 @@ Referințe: `docs/design/documents.md` (secțiunile din paranteze), ADR-0003, AD
 - [ ] Tipul declarat de browser nu se folosește; conținutul trebuie să corespundă extensiei. *(testat)*
 - [ ] Limita zilnică este atomică per student și numără și documentele șterse logic. *(testat)*
 - [ ] Limitele se citesc din CONFIGURARE la fiecare cerere. *(testat)*
+- [ ] Un PDF cu prea multe pagini este respins la încărcare, fără extragerea textului, cu timeout și
+      limită de memorie; un PDF care nu poate fi numărat este acceptat și decide analiza (design
+      2.5, Q48).
 - [ ] Un fișier respins nu lasă rând sau fișier pe disc. *(testat)*
 
 ## C. Textul structurat (3)
@@ -75,10 +83,11 @@ Referințe: `docs/design/documents.md` (secțiunile din paranteze), ADR-0003, AD
 
 ## G. Ce rămâne pentru alte segmente
 
-- [ ] **Segmentul 3:** funcția `analyseDocument` reală; ștergerea conceptelor rămase fără pasaje
-      (Q51); ce face analiza reluată cu conceptele existente (Q47).
-- [ ] **Segmentul 5:** `concept_count` și `due_concept_count` pot trece pe serviciile modulelor
-      respective, sau excepția devine definitivă (Q50).
+- [ ] **Segmentul 3:** funcția `analyseDocument` reală; un concept fără pasaj nu respectă RB1:
+      decizia între ștergere și marcare inactivă (Q51); ce face analiza reluată cu conceptele
+      existente (Q47); **validarea limitei de 60 s pe un document real de 100 de pagini (Q53)**.
+- [ ] **Segmentul 5:** exportul trece pe serviciile modulelor (Q45) și `readStudyData` dispare din
+      `shared-queries`; numărătorile pot rămâne acolo definitiv (Q50, ADR-0014).
 - [ ] **Segmentul 6:** interogarea la cel mult 3 s (C-02); mesajele M04–M06, M08 cu limita
       încălcată afișată o singură dată (C-03); evidențierea citatului în vizualizator (RF5).
 - [ ] **Segmentul 7:** `getSettings` primește validarea, modificarea și auditul (Q49).

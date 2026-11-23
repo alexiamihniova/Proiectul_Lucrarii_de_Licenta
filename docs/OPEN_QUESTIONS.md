@@ -25,12 +25,12 @@ dacă decizia schimbă schema sau contractul, segmentul respectiv face migrarea 
 | Q9  | Unicitatea materialelor (C-13) în baza de date                 | 4       | Deschisă   |
 | Q10 | Administratorul tratează rapoarte fără să vadă materialul      | 7       | Deschisă   |
 | Q11 | Forma exportului CSV                                           | 1       | Confirmată |
-| Q12 | Documentele șterse logic: cât se păstrează; ocolirea limitei zilnice | 2 | Deschisă   |
-| Q13 | Actualizarea stării documentului în 5 s: interogare periodică  | 2, 6    | Deschisă   |
+| Q12 | Documentele șterse logic: cât se păstrează; ocolirea limitei zilnice | 2 | Confirmată |
+| Q13 | Actualizarea stării documentului în 5 s: interogare periodică | 2, 6 | Confirmată |
 | Q14 | Generarea materialelor: sincronă sau în fundal                 | 4       | Deschisă   |
 | Q15 | Feedback după fiecare răspuns și scor doar la final            | 4       | Deschisă   |
-| Q16 | Numărul de pagini pentru DOCX și TXT                           | 2       | Deschisă   |
-| Q17 | Unicitatea numelui materiei: cu sau fără majuscule             | 2       | Deschisă   |
+| Q16 | Numărul de pagini pentru DOCX și TXT | 2 | Confirmată |
+| Q17 | Unicitatea numelui materiei: cu sau fără majuscule | 2 | Confirmată |
 | Q18 | „Marchează ca incorect” (RF10) și „Raportează” (RF12)          | 4       | Deschisă   |
 | Q19 | Auditul în jurnalul structurat, fără tabel                     | 1, 7    | Confirmată |
 | Q20 | Memento-ul „în aplicație” fără entitate proprie                | 8       | Deschisă   |
@@ -59,13 +59,14 @@ dacă decizia schimbă schema sau contractul, segmentul respectiv face migrarea 
 | Q43 | Ștergerea fișierelor la ștergerea contului, înainte de Segmentul 2 | 1, 2 | Amânată (2) |
 | Q44 | Cota zilnică de apeluri către model per utilizator             | 3, 4    | Confirmată |
 | Q45 | Exportul citește direct tabelele altor module                  | 1, 2–5  | Confirmată |
-| Q46 | Textul structurat: tabel nou `sentences` (al 17-lea) | 2 | Deschisă   |
-| Q47 | Reprocesarea nu reextrage textul | 2, 3 | Deschisă   |
-| Q48 | Limita de pagini se verifică la analiză, nu la încărcare | 2 | Deschisă   |
-| Q49 | Citirea configurărilor înainte de Segmentul 7 | 2, 7 | Deschisă   |
-| Q50 | Numărătorile materiei citesc tabele ale Segmentelor 3 și 5 | 2, 3, 5 | Deschisă   |
-| Q51 | Conceptele rămase fără pasaje după ștergerea unui document | 2, 3 | Deschisă   |
-| Q52 | Analiza înainte de Segmentul 3: documentul devine „Gata” fără concepte | 2, 3 | Deschisă   |
+| Q46 | Textul structurat: tabel nou `sentences` (al 17-lea) | 2 | Confirmată |
+| Q47 | Reprocesarea nu reextrage textul | 2, 3 | Confirmată |
+| Q48 | Limita de pagini: PDF la încărcare, DOCX și TXT la analiză | 2 | Confirmată |
+| Q49 | Citirea configurărilor înainte de Segmentul 7 | 2, 7 | Confirmată |
+| Q50 | Interogări de citire peste tabelele altor module: un singur loc (`shared-queries`) | 1, 2, 5 | Confirmată |
+| Q51 | Conceptele rămase fără pasaje după ștergerea unui document | 2, 3 | Amânată (3) |
+| Q52 | Analiza înainte de Segmentul 3: documentul devine „Gata” fără concepte | 2, 3 | Amânată (3) |
+| Q53 | Limita de 60 s pentru analiză: valoare provizorie | 2, 3 | Deschisă (provizorie) |
 
 ---
 
@@ -180,7 +181,7 @@ dacă decizia schimbă schema sau contractul, segmentul respectiv face migrarea 
 
 ### Q12. Documentele șterse logic: cât se păstrează; ocolirea limitei zilnice
 
-- **Folosit în proiectare (16.11.2026), neconfirmat.** Segmentul 2A folosește propunerea de mai jos: 48 de ore, configurabil (`DELETED_DOCUMENT_RETENTION_HOURS`); ocolirea prin ștergerea materiei este acceptată.
+- **Decizie (23.11.2026).** Confirmat: 48 de ore, configurabil (`DELETED_DOCUMENT_RETENTION_HOURS`); ocolirea limitei zilnice prin ștergerea materiei este acceptată.
 
 - **Lipsă.** Starea „Șters” este finală, dar nu se spune cât rămâne rândul. Separat: ștergerea
   unei materii șterge fizic și documentele ei, deci un student poate ocoli limita de 10 încărcări
@@ -192,7 +193,7 @@ dacă decizia schimbă schema sau contractul, segmentul respectiv face migrarea 
 
 ### Q13. Actualizarea stării documentului în 5 s: interogare periodică
 
-- **Folosit în proiectare (16.11.2026), neconfirmat.** Segmentul 2A folosește propunerea de mai jos: interogare periodică la cel mult 3 s.
+- **Decizie (23.11.2026).** Confirmat: interogare periodică la cel mult 3 s.
 
 - **Decizie de proiectare nespecificată.** C-02 cere actualizarea stării afișate în cel mult 5 s,
   fără reîncărcarea paginii.
@@ -225,7 +226,7 @@ dacă decizia schimbă schema sau contractul, segmentul respectiv face migrarea 
 
 ### Q16. Numărul de pagini pentru DOCX și TXT
 
-- **Folosit în proiectare (16.11.2026), neconfirmat.** Segmentul 2A folosește propunerea de mai jos: 3000 de caractere pe „pagină” pentru DOCX și TXT.
+- **Decizie (23.11.2026).** Confirmat: 3000 de caractere pe „pagină” pentru DOCX și TXT.
 
 - **Lipsă.** Limita de 100 de pagini și câmpul `pagină` al pasajului presupun pagini. Un fișier
   TXT nu are pagini, iar un DOCX nu are pagini fixe fără redare.
@@ -235,7 +236,7 @@ dacă decizia schimbă schema sau contractul, segmentul respectiv face migrarea 
 
 ### Q17. Unicitatea numelui materiei: cu sau fără majuscule
 
-- **Folosit în proiectare (16.11.2026), neconfirmat.** Segmentul 2A folosește propunerea de mai jos; indexul devine `(user_id, lower(name))` în migrarea Segmentului 2B.
+- **Decizie (23.11.2026).** Confirmat; indexul devine `(user_id, lower(name))` în migrarea Segmentului 2B.
 
 - **Ambiguitate.** RF3: „unic pentru student”. Nu se spune dacă „Baze de date” și „baze de date”
   sunt același nume.
@@ -516,70 +517,108 @@ dacă decizia schimbă schema sau contractul, segmentul respectiv face migrarea 
 
 ### Q46. Textul structurat: tabel nou `sentences` (al 17-lea)
 
+- **Decizie (23.11.2026).** Confirmat: tabelul `sentences`, deci 17 tabele. ADR-0013 este „Acceptat”.
+  Migrarea o face Segmentul 2B.
 - **Cerință nouă a autoarei.** Textul extras se păstrează structurat (pagini, paragrafe,
-  propoziții, cu poziții). Schema are doar PASAJ.
-- **Propunere (ADR-0013).** Un tabel `sentences`, cu paragraful și pagina ca numere de ordine;
-  pasajul devine un șir de propoziții întregi. Alternativa care păstrează 16 tabele: o coloană
-  JSONB pe `passages`, fără posibilitatea de a interoga sau referi propoziții.
-- **Acum.** Designul și testele presupun tabelul. Migrarea se face în Segmentul 2B, după
-  confirmare; nimic din schemă nu s-a schimbat în 2A.
+  propoziții, cu poziții). Schema avea doar PASAJ.
+- **Soluția (ADR-0013).** Un tabel `sentences`, cu paragraful și pagina ca numere de ordine;
+  pasajul este un șir de propoziții întregi. Alternativa respinsă: o coloană JSONB pe `passages`,
+  fără posibilitatea de a interoga sau referi propoziții.
+- **Acum.** Designul și testele presupun tabelul; nimic din schemă nu s-a schimbat în 2A.
 
 ### Q47. Reprocesarea nu reextrage textul
 
+- **Decizie (23.11.2026).** Confirmat, cum a fost propus.
 - **Lipsă.** RF6 permite reprocesarea, dar nu spune ce se întâmplă cu pasajele, conceptele,
   materialele și progresul existente.
-- **Propunere.** Fișierul nu se schimbă și extragerea este deterministă, deci textul se extrage
+- **Soluția.** Fișierul nu se schimbă și extragerea este deterministă, deci textul se extrage
   o singură dată. Reprocesarea unui document cu pasaje reia doar analiza; pasajele își păstrează
   identificatorii. Ce face analiza reluată cu conceptele existente decide Segmentul 3.
 - **Acum.** Așa cer testele din `backend/tests/documents/`.
 
-### Q48. Limita de pagini se verifică la analiză, nu la încărcare
+### Q48. Limita de pagini: PDF la încărcare, DOCX și TXT la analiză
 
-- **Ambiguitate.** RF3: „Formatul și dimensiunea se verifică înainte de salvare”; despre pagini
-  nu spune când. Numărul de pagini se află doar citind fișierul, iar pentru DOCX și TXT doar
-  după extragerea textului (Q16).
-- **Propunere.** Pentru toate formatele, la analiză: documentul trece în „Eroare” cu M05. O
-  încărcare respinsă astfel consumă din limita zilnică.
-- **Alternativă.** Pentru PDF, numărarea paginilor chiar la încărcare, cu răspuns `413` imediat;
-  cere citirea PDF-ului în cererea HTTP.
-- **Acum.** Testele cer varianta propusă.
+- **Decizie (23.11.2026).** PDF-urile se verifică **la încărcare**: se numără doar paginile, fără
+  extragerea textului, cu timeout și limită de memorie. DOCX și TXT se verifică la analiză, fiindcă
+  nu au pagini fixe (Q16). Verificarea de la analiză rămâne la toate formatele, ca plasă de
+  siguranță. Dacă 2B găsește costul numărării la încărcare prea mare, revine la „doar la analiză”
+  și notează aici motivul și măsurătorile.
+- **Ambiguitate.** RF3: „Formatul și dimensiunea se verifică înainte de salvare”; despre pagini nu
+  spune când. Numărul de pagini se află doar citind fișierul, iar pentru DOCX și TXT doar după
+  extragerea textului.
+- **Detalii (design 2.5).** Un PDF cu mai multe pagini decât limita primește `413 FILE_TOO_LARGE`
+  (M05) imediat și nu consumă din limita zilnică. Dacă paginile nu pot fi numărate (fișier
+  corupt sau protejat, timeout, memorie), încărcarea reușește și decide analiza (M06).
+- **Acum.** Contractul și designul presupun varianta decisă. **Atenție:** un test din 2A
+  (`processing.test.ts`, „a document over the page limit … (Q48)”) încarcă un PDF peste limită și
+  cere ca încărcarea să reușească; contrazice decizia și trebuie corectat înainte de 2B (design 11,
+  punctul 0).
 
 ### Q49. Citirea configurărilor înainte de Segmentul 7
 
+- **Decizie (23.11.2026).** Confirmat: 2B scrie în `modules/admin/service.ts` doar funcția de citire
+  `getSettings`, fără rute noi. Restul administrării aparține Segmentului 7.
 - **Dependență.** Încărcarea are nevoie de `max_file_size_mb` și `uploads_per_day` din
   CONFIGURARE, iar `getSettings` aparține modulului `admin`, care se construiește în Segmentul 7.
-- **Propunere.** Segmentul 2B scrie în `modules/admin/service.ts` doar citirea (`getSettings`),
-  cu valorile implicite pentru cheile lipsă. Validarea, modificarea și auditul rămân ale
-  Segmentului 7.
+- **Soluția.** Citirea, cu valorile implicite pentru cheile lipsă. Validarea, modificarea și
+  auditul rămân ale Segmentului 7.
 - **Acum.** Testele schimbă limitele direct în tabelul `settings`.
 
-### Q50. Numărătorile materiei citesc tabele ale Segmentelor 3 și 5
+### Q50. Interogări de citire peste tabelele altor module: un singur loc (`shared-queries`)
 
+- **Decizie (23.11.2026).** Modulele de business nu citesc direct tabelele altor module. Există **un
+  singur loc explicit** pentru interogările de citire transversale: `modules/shared-queries/`,
+  exceptat în ESLint numai pentru acel folder (ADR-0014). Exportul din Segmentul 1
+  (`readStudyData`, Q45) se mută acolo, iar numărătorile materiei (`concept_count`,
+  `due_concept_count`) trec tot acolo.
 - **Dependență.** `Subject` din contract are `concept_count` și `due_concept_count`, din
-  tabelele `concepts` și `reviews`.
-- **Propunere.** Ca la export (Q45): citire directă, numai numărare, filtrată după utilizator,
-  într-o singură interogare cu lista materiilor. Aici excepția poate rămâne definitivă: o
-  numărătoare pe materie prin serviciile altor module ar însemna câte un apel pentru fiecare rând.
-- **Acum.** Testele verifică numărătorile cu rânduri inserate direct.
+  tabelele `concepts` și `reviews`, pe care le construiesc segmentele 3 și 5.
+- **Soluția.** Funcții numai de citire, fiecare cu un `UserActor` ca prim parametru, apelate prin
+  `shared-queries/service.ts`. O numărătoare pe materie prin serviciile altor module ar însemna câte
+  un apel pentru fiecare rând al listei, de aceea nu se face prin ele.
+- **Obligația din Q45 rămâne:** Segmentul 5 poate trece exportul pe serviciile modulelor; atunci
+  funcția respectivă dispare din `shared-queries`. Numărătorile pot rămâne acolo definitiv.
+- **Acum.** Mutarea și excepția ESLint sunt în lista de lucru a lui 2B; până atunci exportul
+  citește încă din `modules/auth/repository.ts`.
 
 ### Q51. Conceptele rămase fără pasaje după ștergerea unui document
 
+- **Decizie (23.11.2026).** Amânat către Segmentul 3. Un concept fără niciun pasaj nu respectă RB1 (o
+  sursă verificabilă) și nici RF8; Segmentul 3 trebuie să **decidă între ștergerea lui și
+  marcarea lui ca inactiv** (ascuns din liste, exclus din generare și din recapitulare). Segmentul
+  2 nu atinge `concepts` și nu decide.
 - **Lipsă.** Conceptul ține de materie (Q4), iar legătura cu documentul trece prin pasaje.
   Ștergerea unui document îi șterge pasajele și, în cascadă, legăturile și materialele; un
-  concept poate rămâne fără niciun pasaj, deși RF8 cere cel puțin unul.
-- **Propunere.** Segmentul 3 șterge conceptele rămase fără pasaje, în aceeași tranzacție, printr-o
-  funcție pe care `documents` o primește ca dependență. Segmentul 2 nu atinge `concepts`.
-- **Acum.** După ștergerea unui document pot rămâne concepte fără pasaje. Nu există încă nicio
-  cale de a crea concepte, deci nu se întâmplă înainte de Segmentul 3.
+  concept poate rămâne fără niciun pasaj.
+- **Acum.** Nu există încă nicio cale de a crea concepte, deci situația nu apare înainte de
+  Segmentul 3. `documents` poate primi ulterior o funcție de curățare ca dependență.
 
 ### Q52. Analiza înainte de Segmentul 3: documentul devine „Gata” fără concepte
 
+- **Decizie (23.11.2026).** Amânat către Segmentul 3, cum a fost propus.
 - **Dependență.** Trecerea în „Gata” urmează extragerii conceptelor (RF7), care este a
   Segmentului 3 și a cărei metodă nu este încă hotărâtă (ADR-0012).
-- **Propunere.** `documents` primește analiza ca funcție (`analyseDocument`). Până la Segmentul 3,
+- **Soluția.** `documents` primește analiza ca funcție (`analyseDocument`). Până la Segmentul 3,
   funcția implicită nu face nimic: documentul devine „Gata” cu text și pasaje, fără concepte.
 - **Acum.** Testele injectează o analiză falsă, ca să verifice eșecul, limita de timp și
   rezultatele tardive.
+
+### Q53. Limita de 60 s pentru analiză: valoare provizorie
+
+- **Starea reală a cerinței.** 60 s apare în Dosar, ca pragul evenimentului PE („procesare
+  eșuată sau depășire de 60 s”, Tabelul 3.1) și în C-10, și în SRS, ca timp-țintă T2/RNF2: analiza
+  unui document **de până la 50 de pagini** în cel mult 60 s, în fundal. Pentru 51–100 de pagini
+  (limita din RF3) SRS nu garantează niciun timp: tabelul P4 spune că timpul garantat este pentru
+  50. Pragul de eșec este totuși aplicat tuturor documentelor.
+- **Valoare provizorie.** `DOCUMENT_PROCESSING_TIMEOUT_SECONDS = 60` este valoarea din
+  specificații, dar nu este validată pentru 100 de pagini. Analiza include apelurile către model
+  (Segmentul 3), limitate de cota furnizorului (ADR-0012: aprox. 15 cereri pe minut), deci un
+  document mare poate depăși 60 s fără să fie defect.
+- **De făcut (Segmentul 3).** Măsurarea pe un document real de 100 de pagini, cu apelurile
+  reale. Dacă 60 s nu ajunge: fie se ridică valoarea (este configurabilă, 1–600 s), fie limita
+  depinde de numărul de pagini; în ambele cazuri se actualizează SRS (RNF2) sau se consemnează
+  abaterea.
+- **Acum.** 60 s, configurabil. Nu schimbă nimic în 2B.
 
 ---
 

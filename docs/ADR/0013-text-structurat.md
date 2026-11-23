@@ -1,6 +1,6 @@
 # ADR-0013: Textul documentului se păstrează structurat, cu propoziția ca unitate
 
-Stare: Propus (așteaptă confirmarea Q46) · Data: 2026-11-16 · Se implementează în Segmentul 2B
+Stare: Acceptat (confirmat la 23.11.2026, Q46) · Data: 2026-11-16 · Se implementează în Segmentul 2B
 
 ## Context
 

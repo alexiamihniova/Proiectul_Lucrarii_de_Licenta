@@ -112,7 +112,9 @@ Rularea a descoperit trei greșeli de-ale testelor, corectate înainte de commit
   PDF-uri minimale, cu text ASCII; ordinea de citire pe pagini cu mai multe coloane nu e verificată.
 - **Calitatea împărțirii în propoziții pe text real.** Regulile din 3.4 sunt verificate pe cazuri
   alese; precizia pe un curs real se judecă la 2B, pe documente reale ale autoarei.
-- **Limita de pagini la încărcare pentru PDF** (Q48): testele cer varianta „la analiză”.
+- **Limita de pagini la încărcare pentru PDF** (Q48, decis la 23.11.2026): testele din 2A cer încă
+  varianta „doar la analiză”, iar unul o contrazice; se corectează înainte de 2B (design 11,
+  punctul 0).
 - **Oprirea efectivă a unei extrageri în curs** la depășirea timpului: se verifică semnalul și
   starea finală, nu că firul de execuție s-a oprit.
 - **Eșecul scrierii pe disc** (disc plin, permisiuni) nu este simulat.

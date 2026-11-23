@@ -6,6 +6,9 @@ document, testele din `backend/tests/documents/`, trasate în `documents-tests.m
 interfețele din `modules/documents/types.ts`) fixează comportarea; Segmentul 2B o implementează fără să o
 reinterpreteze. Lista de lucru pentru 2B este în secțiunea 11.
 
+Deciziile autoarei din 23.11.2026 asupra întrebărilor Q12, Q13, Q16, Q17 și Q46–Q52 sunt incluse mai
+jos; Q53 (limita de 60 s) rămâne o valoare provizorie.
+
 Marcaje: **[SRS]** = valoare luată din specificații; **[propus]** = valoare propusă aici, cu
 întrebarea din `docs/OPEN_QUESTIONS.md` unde se poate schimba.
 
@@ -18,12 +21,12 @@ Marcaje: **[SRS]** = valoare luată din specificații; **[propus]** = valoare pr
 | Formate acceptate                     | PDF, DOCX, TXT                          | [SRS] RF3        | fix                               |
 | Dimensiunea maximă a fișierului       | 20 MB                                   | [SRS] RF3, P3    | CONFIGURARE `max_file_size_mb` (1–50) |
 | Limita tehnică a încărcării           | 50 MB                                   | [SRS] P3         | `UPLOAD_HARD_LIMIT_MB`            |
-| Numărul maxim de pagini               | 100                                     | [SRS] RF3, P4    | `UPLOAD_MAX_PAGES`                |
+| Numărul maxim de pagini               | 100; PDF la încărcare, DOCX și TXT la analiză | [SRS] RF3, P4; [decis] Q48 | `UPLOAD_MAX_PAGES` |
 | O „pagină” pentru DOCX și TXT         | 3000 de caractere de text curățat       | [propus] Q16     | fix                               |
 | Încărcări pe zi                       | 10, resetate la 00:00 ora Chișinăului   | [SRS] P6, C-07   | CONFIGURARE `uploads_per_day` (1–50), `APP_TIMEZONE` |
 | Lungimea unui pasaj                   | 100–300 de cuvinte                      | [SRS] RF4        | fix                               |
 | Text minim                            | 200 de caractere                        | [SRS] RF4, M06   | fix                               |
-| Limita de timp a analizei             | 60 s                                    | [SRS] T2, PE     | `DOCUMENT_PROCESSING_TIMEOUT_SECONDS` |
+| Limita de timp a analizei             | 60 s, **provizorie**                    | [Dosar] PE, C-10; [SRS] T2 doar pentru ≤ 50 de pagini; Q53 | `DOCUMENT_PROCESSING_TIMEOUT_SECONDS` |
 | Numele documentului                   | 1–255 de caractere                      | [propus]         | fix                               |
 | Păstrarea rândurilor șterse logic     | 48 de ore                               | [propus] Q12     | `DELETED_DOCUMENT_RETENTION_HOURS` |
 | Actualizarea stării în interfață      | interogare la cel mult 3 s              | [propus] Q13, C-02 | frontend                        |
@@ -38,7 +41,8 @@ Marcaje: **[SRS]** = valoare luată din specificații; **[propus]** = valoare pr
 - Lista este ordonată alfabetic, fără majuscule, apoi după `id`; este paginată.
 - `Subject` conține trei numărători: `document_count` (fără documentele șterse),
   `concept_count` și `due_concept_count` (concepte cu `reviews.due_date` azi sau în trecut, în
-  fusul orar al aplicației). Ultimele două citesc tabele ale Segmentelor 3 și 5 (Q50).
+  fusul orar al aplicației). Ultimele două citesc tabele ale Segmentelor 3 și 5, deci vin din
+  `shared-queries` (ADR-0014, Q50), nu dintr-o interogare a modulului `documents`.
 - Ștergerea (`DELETE /subjects/{id}`, după confirmarea M10 din interfață) elimină fizic materia
   și, în cascadă, documentele, pasajele, propozițiile, conceptele, materialele, testele,
   răspunsurile, progresul și recapitulările ei. Fișierele documentelor se șterg de pe disc după
@@ -58,9 +62,10 @@ Marcaje: **[SRS]** = valoare luată din specificații; **[propus]** = valoare pr
 | 3   | Extensia este `.pdf`, `.docx` sau `.txt` (fără majuscule)            | `415 UNSUPPORTED_FILE_FORMAT` (M04)       |
 | 4   | Conținutul corespunde extensiei (2.2)                                | `415 UNSUPPORTED_FILE_FORMAT` (M04)       |
 | 5   | Dimensiunea ≤ `max_file_size_mb`                                     | `413 FILE_TOO_LARGE` (M05)                |
-| 6   | Încărcările de azi < `uploads_per_day`                               | `429 DAILY_UPLOAD_LIMIT_REACHED` (M08)    |
+| 6   | Numai PDF: numărul de pagini ≤ `UPLOAD_MAX_PAGES` (2.5, Q48)         | `413 FILE_TOO_LARGE` (M05)                |
+| 7   | Încărcările de azi < `uploads_per_day`                               | `429 DAILY_UPLOAD_LIMIT_REACHED` (M08)    |
 
-Formatul și dimensiunea se verifică înainte de salvare (RF3). Tipul `Content-Type` declarat de
+Formatul, dimensiunea și, pentru PDF, numărul de pagini se verifică înainte de salvare (RF3, Q48). Tipul `Content-Type` declarat de
 browser nu se folosește: îl alege clientul. Un fișier respins nu consumă din limita zilnică și
 nu lasă nimic pe disc sau în bază.
 
@@ -69,7 +74,7 @@ nu lasă nimic pe disc sau în bază.
 | Eroare                        | `details`                                                        |
 | ----------------------------- | ---------------------------------------------------------------- |
 | `UNSUPPORTED_FILE_FORMAT`     | `{ "allowed": ["pdf", "docx", "txt"] }`                          |
-| `FILE_TOO_LARGE`              | `{ "exceeded": "size", "limit_mb": 20, "limit_pages": 100 }`     |
+| `FILE_TOO_LARGE`              | `{ "exceeded": "size" \| "pages", "limit_mb": 20, "limit_pages": 100 }`, plus `"pages": <număr găsit>` când depășirea este de pagini |
 | `DAILY_UPLOAD_LIMIT_REACHED`  | `{ "limit": 10, "resets_at": "<ISO 8601>" }`                     |
 
 Un fișier peste limita tehnică (`UPLOAD_HARD_LIMIT_MB`) primește tot `413 FILE_TOO_LARGE`.
@@ -106,6 +111,29 @@ avea același nume. Analiza pornește în fundal (secțiunea 4).
   ora de vară. `remaining = max(0, limit − used)`.
 - Limitele se citesc din CONFIGURARE la fiecare cerere (RF25: o schimbare se aplică de la
   operația următoare). Citirea se face prin `getSettings` din modulul `admin` (Q49).
+
+### 2.5 Numărul de pagini al unui PDF, la încărcare (Q48)
+
+Pentru un PDF, numărul de pagini se află înainte de salvare, **fără extragerea textului**: se
+citește numai structura fișierului (arborele de pagini), nu conținutul paginilor.
+
+- **Timeout și memorie.** Numărarea rulează într-un fir de execuție separat (`worker_threads`)
+  cu limită de memorie (`resourceLimits.maxOldGenerationSizeMb`, propus 256) și cu timeout
+  (propus 5 s), după care firul se oprește. Cererea HTTP așteaptă rezultatul.
+- **Rezultatul.** Mai multe pagini decât `UPLOAD_MAX_PAGES` → `413 FILE_TOO_LARGE`
+  (`details.exceeded = "pages"`), fără rând, fără fișier și fără să consume din limita zilnică.
+- **Dacă paginile nu pot fi numărate** (fișier corupt sau protejat, timeout, memorie depășită),
+  încărcarea **nu** se respinge: reușește, iar analiza decide (M06 pentru un fișier ilizibil). Un
+  PDF care nu se poate număra nu este nici „prea mare”, nici „neacceptat”; mesajul corect îl dă
+  analiza.
+- **Plasa de siguranță.** Verificarea de la analiză (3.6) rămâne pentru toate formatele, fiindcă
+  numărul de la încărcare poate lipsi sau poate diferi de cel din extragere.
+- **Valorile 256 MB și 5 s** sunt propuse și nu sunt validate. Dacă 2B găsește costul numărării
+  prea mare (de exemplu peste 1 s pentru un PDF de 20 MB, sau memorie nelimitabilă în fir), revine
+  la „doar la analiză” și consemnează motivul și măsurătorile în Q48. Nu schimbă contractul altfel
+  decât prin lipsa respingerii la încărcare.
+- DOCX și TXT nu se numără la încărcare: nu au pagini fixe (Q16), iar numărul se află abia din
+  textul extras.
 
 ## 3. Textul structurat
 
@@ -227,9 +255,10 @@ pe care începe. Împărțirea este deterministă: același text dă aceleași p
 - PDF: paginile reale. `page_count` este numărul de pagini al fișierului, inclusiv cele fără text.
 - DOCX și TXT: nu au pagini fixe. `page = ⌊start_offset / 3000⌋ + 1`, iar
   `page_count = max(1, ⌈lungimea textului canonic / 3000⌉)`. Interfața le arată ca aproximative.
-- Limita de 100 de pagini (`UPLOAD_MAX_PAGES`) se verifică la analiză, pentru toate formatele,
-  fiindcă numărul de pagini se află abia după citirea fișierului: documentul trece în „Eroare”
-  cu `FILE_TOO_LARGE` (M05) și nu se salvează niciun text (Q48).
+- Limita de 100 de pagini (`UPLOAD_MAX_PAGES`) se verifică în două locuri (Q48): la încărcare,
+  numai pentru PDF (2.5); și la analiză, pentru toate formatele, ca plasă de siguranță. La
+  analiză, pentru DOCX și TXT numărul de pagini se află abia după extragerea textului: documentul
+  trece în „Eroare” cu `FILE_TOO_LARGE` (M05) și nu se salvează niciun text.
 
 ### 3.7 Extragerea
 
@@ -297,6 +326,11 @@ type AnalyseDocument = (input: { documentId: number }, signal: AbortSignal) => P
 - `failStuckDocuments()`: orice document `processing` cu `processing_started_at` mai vechi decât
   limita trece în „Eroare” cu același cod. Acoperă procesele căzute. Rulează în worker la 10 s.
 - Un rezultat sosit după aceea este aruncat (4.1).
+- **60 s este o valoare provizorie (Q53).** Vine din Dosar (pragul PE, C-10) și din SRS (T2/RNF2),
+  dar SRS garantează 60 s numai pentru documente de până la 50 de pagini, iar limita de încărcare
+  este 100. Analiza include apelurile către model (Segmentul 3), limitate de cota din ADR-0012. Se
+  validează în Segmentul 3, pe un document real de 100 de pagini, cu apelurile reale; valoarea
+  rămâne configurabilă (1–600 s).
 
 ### 4.4 Reprocesarea (RP, C-09, Q47)
 
@@ -327,8 +361,10 @@ mult 3 s. Răspunsul nu se pune în cache (`Cache-Control: no-store`).
 - `DELETE /documents/{id}` (ȘT), în orice stare: într-o tranzacție, `status = 'deleted'`,
   `deleted_at = acum`, iar pasajele documentului se șterg (cu ele, în cascadă, propozițiile,
   legăturile cu conceptele și materialele). Fișierul se șterge de pe disc după `COMMIT`.
-  Răspuns `204`; a doua ștergere răspunde `404`. Conceptele rămase fără niciun pasaj sunt
-  regula Segmentului 3 (Q51).
+  Răspuns `204`; a doua ștergere răspunde `404`. **Un concept rămas fără niciun pasaj nu
+  respectă RB1** (nu are sursă verificabilă) și nici RF8: Segmentul 3 trebuie să decidă între
+  ștergerea lui și marcarea lui ca inactiv (Q51). Segmentul 2 nu atinge `concepts` și nu decide;
+  până la Segmentul 3 nu există concepte.
 - Rândurile șterse logic se elimină fizic după `DELETED_DOCUMENT_RETENTION_HOURS` (48):
   `purgeDeletedDocuments()`, în worker, o dată pe oră (Q12).
 
@@ -410,17 +446,32 @@ Nimic din Segmentul 2 nu apelează modelul de limbaj; ADR-0012 se aplică de la 
 
 ## 11. Ce are de făcut Segmentul 2B
 
+0. **Corecție de 2A, înainte de 2B.** Decizia Q48 contrazice un test: în `processing.test.ts`,
+   „a document over the page limit is FILE_TOO_LARGE … stores no text (Q48)” încarcă un PDF peste
+   limită și cere ca încărcarea să reușească. Se corectează în 2A, într-un commit separat, cu
+   aprobarea autoarei: testul trece pe DOCX/TXT sau pe un PDF care nu poate fi numărat, și se
+   adaugă teste pentru respingerea la încărcare (413, fără rând, fără fișier, fără consum din
+   limita zilnică), pentru PDF-ul corupt acceptat la încărcare și pentru timeout. Până atunci
+   `tests/documents/` nu este complet pentru Q48.
+
 1. **Migrare**: tabelul `sentences` (3.1), cu inversa scrisă de mână; indexul unic al materiilor
    devine `(user_id, lower(name))` (Q17). `docs/DATA_MODEL.md` și testul „exact 16 tabele”
    trec la 17. Fabrica de rânduri din `tests/helpers/db.ts` primește `sentence`.
 2. **Dependențe**, cu justificare în commit sau într-un ADR: o bibliotecă pentru PDF care dă
-   fragmentele de text cu poziții pe pagină (de exemplu `pdfjs-dist`) și una pentru DOCX (de
-   exemplu `mammoth`), sau citirea directă a `word/document.xml` cu `node:zlib`. TXT nu cere
+   fragmentele de text cu poziții pe pagină și numărul de pagini fără extragerea textului (de
+   exemplu `pdfjs-dist`) și una pentru DOCX (de exemplu `mammoth`), sau citirea directă a
+   `word/document.xml` cu `node:zlib`. TXT nu cere
    nimic. Prototipul din `legacy/express/` este doar referință.
 3. `modules/documents/`: `repository.ts`, `service.ts` (implementează `DocumentsService` fără
    să-i schimbe forma), funcția pură `structureText`, extractorul implicit, depozitul de fișiere.
 4. `modules/admin/service.ts`: `getSettings(db)`, numai citire, cu valorile implicite pentru
-   cheile lipsă (Q49). Restul modulului rămâne al Segmentului 7.
+   cheile lipsă, **fără rute noi** (Q49). Restul modulului rămâne al Segmentului 7.
+4b. **`modules/shared-queries/`** (ADR-0014, Q50): `service.ts` cu interogările de citire
+   transversale; excepția ESLint numai pentru acest folder; `readStudyData` se mută din
+   `modules/auth/repository.ts`, iar `exportAccount` îl apelează prin serviciu; numărătorile
+   `concept_count` și `due_concept_count` vin de acolo. Un test cu doi studenți pentru fiecare
+   funcție. Testele din `tests/auth/` rămân neschimbate și trec.
+4c. Numărarea paginilor unui PDF la încărcare (2.5), cu timeout și limită de memorie.
 5. `app.ts`: `app.decorate('documents', createDocumentsService(...))`; `userFiles` al serviciului
    `auth` devine `app.documents.userFiles`; se șterge `createPendingUserFileStore`.
    `worker.ts`: `documentsWorkerTasks`.
