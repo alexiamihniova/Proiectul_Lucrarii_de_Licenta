@@ -2,8 +2,8 @@
 
 Acoperă RF3–RF6, C-02, C-03, C-07–C-10, UC-04, tabelul de stări al documentului (Dosar, Tabelul
 3.1) și obligația din Segmentul 1 de a șterge fișierele unui cont (Q43). Segmentul 2A (acest
-document, testele din `backend/tests/documents/` și interfețele din
-`modules/documents/types.ts`) fixează comportarea; Segmentul 2B o implementează fără să o
+document, testele din `backend/tests/documents/`, trasate în `documents-tests.md`, și
+interfețele din `modules/documents/types.ts`) fixează comportarea; Segmentul 2B o implementează fără să o
 reinterpreteze. Lista de lucru pentru 2B este în secțiunea 11.
 
 Marcaje: **[SRS]** = valoare luată din specificații; **[propus]** = valoare propusă aici, cu
