@@ -71,6 +71,8 @@ jobs:
   documents-spec:
     name: Documents specification (expected to fail until Segment 2B)
     runs-on: ubuntu-latest
+    # Segment 2B must remove this marker together with the whole job once the tests pass: from
+    # then on a failing documents test has to fail the build (it runs in the `backend` job).
     continue-on-error: true
     services:
       postgres:
