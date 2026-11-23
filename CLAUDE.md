@@ -130,7 +130,7 @@ verified by the `compose` job in CI.
 
 ```
 backend/src/core/        config, errors, http helpers, logger, openapi, worker runtime, domain enums
-backend/src/db/          schema (16 tables), client, migrate, seed
+backend/src/db/          schema (17 tables), client, migrate, seed
 backend/src/modules/     auth, documents, analysis, llm, content, mastery, reminders, admin
 backend/src/server.ts    HTTP entry point
 backend/src/worker.ts    background worker entry point (register tasks in collectTasks())

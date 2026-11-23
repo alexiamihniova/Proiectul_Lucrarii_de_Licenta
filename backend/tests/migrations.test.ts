@@ -41,14 +41,14 @@ describe('migrations', () => {
     }
   });
 
-  it('applies on an empty database and creates exactly the 16 tables', async () => {
+  it('applies on an empty database and creates exactly the 17 tables', async () => {
     await migrateDown(url, ALL);
     expect(await publicTables()).toEqual([]);
 
     const applied = await migrateUp(url);
     expect(applied).toEqual(listMigrations());
     expect(await publicTables()).toEqual([...TABLES].sort());
-    expect(TABLES).toHaveLength(16);
+    expect(TABLES).toHaveLength(17);
   });
 
   it('is idempotent: a second run applies nothing', async () => {

@@ -13,6 +13,7 @@ export const TABLES = [
   'subjects',
   'documents',
   'passages',
+  'sentences',
   'concepts',
   'concept_passages',
   'materials',
@@ -100,6 +101,23 @@ export function factories(pool: pg.Pool) {
       );
     },
 
+    async sentence(documentId: number, passageId: number, overrides: Row = {}): Promise<number> {
+      counter += 1;
+      return id(
+        await insert(pool, 'sentences', {
+          document_id: documentId,
+          passage_id: passageId,
+          position: counter,
+          paragraph: 0,
+          page: 1,
+          start_offset: 0,
+          end_offset: 38,
+          text: 'Cheia primară identifică unic un rând.',
+          ...overrides,
+        }),
+      );
+    },
+
     async concept(subjectId: number, overrides: Row = {}): Promise<number> {
       return id(
         await insert(pool, 'concepts', {
@@ -162,6 +180,7 @@ export async function seedOwnedData(pool: pg.Pool, userId: number) {
   const subjectId = await f.subject(userId);
   const documentId = await f.document(subjectId);
   const passageId = await f.passage(documentId);
+  await f.sentence(documentId, passageId);
   const conceptId = await f.concept(subjectId);
   await f.insert('concept_passages', { concept_id: conceptId, passage_id: passageId });
   const materialId = await f.material(conceptId, passageId);

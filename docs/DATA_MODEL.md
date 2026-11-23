@@ -3,7 +3,7 @@
 Sursa de adevăr este codul: `backend/src/db/schema/*.ts` (Drizzle) și migrarea
 `backend/drizzle/0000_init.sql`. Documentul explică de ce arată schema așa.
 
-- Baza: SRS, Tabelul 3.21 (15 entități) + TOKEN_RESETARE din Dosar (C-24) = **16 tabele**.
+- Baza: SRS, Tabelul 3.21 (15 entități) + TOKEN_RESETARE din Dosar (C-24) + PROPOZIȚIE (ADR-0013, Q46) = **17 tabele**.
 - Valorile închise (roluri, stări, tipuri) sunt definite o singură dată, în
   `backend/src/core/domain.ts`, și folosite atât de constrângerile `CHECK`, cât și de schemele API.
 - Convenții: nume `snake_case` în engleză, chei `BIGINT GENERATED ALWAYS AS IDENTITY`, enumerări
@@ -18,6 +18,8 @@ erDiagram
     users ||--o{ subjects : "deține"
     subjects ||--o{ documents : "conține"
     documents ||--o{ passages : "împărțit în"
+    documents ||--o{ sentences : "conține"
+    passages ||--o{ sentences : "este șir de"
     subjects ||--o{ concepts : "grupează"
     concepts ||--o{ concept_passages : ""
     passages ||--o{ concept_passages : ""
@@ -90,6 +92,17 @@ erDiagram
         int position
         int page
         int start_offset
+        int end_offset
+        text text
+    }
+    sentences {
+        bigint id PK
+        bigint document_id FK
+        bigint passage_id FK
+        int position "ordinea în document, de la 0"
+        int paragraph "paragraful, de la 0"
+        int page "pagina pe care începe"
+        int start_offset "în textul canonic"
         int end_offset
         text text
     }
@@ -196,6 +209,7 @@ erDiagram
 | MATERIE           | `subjects`              | documents           |
 | DOCUMENT          | `documents`             | documents           |
 | PASAJ             | `passages`              | documents           |
+| PROPOZIȚIE        | `sentences`             | documents (nu este în SRS; ADR-0013) |
 | CONCEPT           | `concepts`              | analysis            |
 | CONCEPT_PASAJ     | `concept_passages`      | analysis            |
 | MATERIAL          | `materials`             | content             |
@@ -320,6 +334,7 @@ consemnate și în OPEN_QUESTIONS.md.
 | `llm_calls.user_id`                  | Dosar, C-20.                                                                                         |
 | `llm_calls.error_code`, `attempt`    | C-06: codul erorii și numărul reîncercării.                                                          |
 | `llm_calls.items_received`, `items_accepted` | RF23 cere rata surselor neverificate, dar C-15 interzice salvarea materialelor respinse; rata se calculează din aceste contoare. |
+| `sentences` (tot tabelul)            | Q46, ADR-0013: textul extras se păstrează structurat (propoziții, paragrafe, pagini, poziții); SRS are doar PASAJ. |
 | `passages`: `position`               | „ordine” din SRS; `order` este cuvânt rezervat în SQL.                                               |
 | `concepts.created_at`, `materials.created_at`, `password_reset_tokens.created_at` | Ordonare stabilă în liste; verificarea „expiră după creare”. |
 
@@ -338,7 +353,7 @@ consemnate și în OPEN_QUESTIONS.md.
 
 ### Materii, documente, pasaje
 
-- **`subjects_user_id_name_key`** — numele materiei este unic per student, nu global (RF3).
+- **`subjects_user_id_name_key`** — numele materiei este unic per student, nu global (RF3), și fără a ține seama de majuscule: indexul este pe `(user_id, lower(name))` (Q17).
 - **`documents_format_check`** — numai `pdf`, `docx`, `txt`. PPTX, acceptat de prototip, nu
   este în SRS.
 - **`documents_error_reason_check`** — `(status = 'error') = (error_reason IS NOT NULL)`.
@@ -365,6 +380,9 @@ consemnate și în OPEN_QUESTIONS.md.
 - **`documents_queue_idx`** — index parțial pe `uploaded_at` unde `status = 'queued'`:
   preluarea din coadă (ADR-0003) rămâne rapidă oricâte documente procesate există.
 - **`passages_document_id_position_key`** — ordinea pasajelor este unică în document.
+- **`sentences_document_id_position_key`** — ordinea propozițiilor este unică în document; cascada
+  din `documents` și din `passages` le șterge împreună cu ele (ADR-0013). Pozițiile sunt indici în
+  textul canonic, care nu se stochează: se reconstituie din propoziții.
 
 ### Concepte și materiale
 

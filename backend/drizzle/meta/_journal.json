@@ -15,6 +15,13 @@
       "when": 1794831870582,
       "tag": "0001_user_consent_version",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1795454187464,
+      "tag": "0002_sentences_and_subject_name",
+      "breakpoints": true
     }
   ]
 }

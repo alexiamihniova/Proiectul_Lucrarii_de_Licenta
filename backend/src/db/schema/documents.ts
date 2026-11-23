@@ -25,7 +25,8 @@ export const subjects = pgTable(
     createdAt: createdAt(),
   },
   (t) => [
-    uniqueIndex('subjects_user_id_name_key').on(t.userId, t.name),
+    // Q17: "Baze de date" and "baze de date" are the same name.
+    uniqueIndex('subjects_user_id_name_key').on(t.userId, sql`lower(${t.name})`),
     check('subjects_name_check', sql`char_length(btrim(${t.name})) >= 1`),
   ],
 );
@@ -105,5 +106,45 @@ export const passages = pgTable(
       sql`${t.startOffset} >= 0 and ${t.endOffset} > ${t.startOffset}`,
     ),
     check('passages_text_check', sql`char_length(${t.text}) >= 1`),
+  ],
+);
+
+/**
+ * PROPOZIȚIE (ADR-0013, Q46) — the smallest unit of the document text. Offsets index the
+ * canonical text: the sentences of a paragraph joined by " ", the paragraphs by "\n\n". The
+ * canonical text itself is not stored; it is rebuilt from the sentences (docs/design/documents.md,
+ * section 3.2). A passage is a run of whole sentences.
+ */
+export const sentences = pgTable(
+  'sentences',
+  {
+    id: id(),
+    documentId: ref()
+      .notNull()
+      .references(() => documents.id, { onDelete: 'cascade' }),
+    passageId: ref()
+      .notNull()
+      .references(() => passages.id, { onDelete: 'cascade' }),
+    /** 0-based order of the sentence in the document, without gaps. */
+    position: integer().notNull(),
+    /** 0-based number of the paragraph in the document. */
+    paragraph: integer().notNull(),
+    /** The page on which the sentence starts. */
+    page: integer().notNull(),
+    startOffset: integer().notNull(),
+    endOffset: integer().notNull(),
+    text: text().notNull(),
+  },
+  (t) => [
+    uniqueIndex('sentences_document_id_position_key').on(t.documentId, t.position),
+    index('sentences_passage_id_idx').on(t.passageId),
+    check('sentences_position_check', sql`${t.position} >= 0`),
+    check('sentences_paragraph_check', sql`${t.paragraph} >= 0`),
+    check('sentences_page_check', sql`${t.page} >= 1`),
+    check(
+      'sentences_offsets_check',
+      sql`${t.startOffset} >= 0 and ${t.endOffset} > ${t.startOffset}`,
+    ),
+    check('sentences_text_check', sql`char_length(${t.text}) >= 1`),
   ],
 );

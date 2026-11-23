@@ -16,7 +16,7 @@ răspund `501` până la implementare, în Segmentele 2–8.
 | Fișier                                                    | Conținut                                                   |
 | --------------------------------------------------------- | ---------------------------------------------------------- |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)              | Straturi, fluxul unei cereri, procesele de fundal          |
-| [docs/DATA_MODEL.md](docs/DATA_MODEL.md)                  | Cele 16 tabele, corespondența română–engleză, constrângeri |
+| [docs/DATA_MODEL.md](docs/DATA_MODEL.md)                  | Cele 17 tabele, corespondența română–engleză, constrângeri |
 | [docs/ADR/](docs/ADR/README.md)                           | Deciziile de arhitectură, câte una pe fișier               |
 | [docs/OPEN_QUESTIONS.md](docs/OPEN_QUESTIONS.md)          | Contradicții și lipsuri din specificații, cu propuneri     |
 | [docs/design/auth.md](docs/design/auth.md)                | Proiectarea conturilor și a accesului (Segmentul 1)        |
@@ -70,7 +70,7 @@ git clone <adresa-repozitoriului> && cd Proiectul_Lucrarii_de_licenta
 make install      # dependențele backend și frontend
 make env          # creează .env cu un SESSION_SECRET aleator
 make db-create    # bazele recap_dev și recap_test
-make migrate      # cele 16 tabele
+make migrate      # cele 17 tabele
 make seed         # setările implicite
 make dev          # API pe :3001, worker, frontend pe :5173
 ```
@@ -170,4 +170,4 @@ marcate pentru acel segment.
 - **backend**: lint, verificare de tipuri, migrările pe un PostgreSQL 16 gol (aplicare, anulare,
   reaplicare), teste, prospețimea `openapi.json` și a migrărilor;
 - **frontend**: lint, tipuri, prospețimea tipurilor API, teste, build;
-- **compose**: `make up` de la zero, `/health`, proxy-ul frontendului, cele 16 tabele.
+- **compose**: `make up` de la zero, `/health`, proxy-ul frontendului, cele 17 tabele.

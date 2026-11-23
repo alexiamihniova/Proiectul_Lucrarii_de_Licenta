@@ -44,7 +44,7 @@ backend/
       health.ts            /health
       worker.ts            rularea periodică a sarcinilor de fundal
     db/
-      schema/              cele 16 tabele (Drizzle)
+      schema/              cele 17 tabele (Drizzle)
       client.ts            singurul loc unde se creează conexiunea
       migrate.ts           aplicarea și anularea migrărilor
       seed.ts              valorile implicite din `settings`

@@ -141,12 +141,12 @@ jobs:
         run: curl --fail --silent --show-error http://localhost:3001/health
       - name: Frontend reaches the backend through the /api proxy
         run: curl --fail --silent --show-error http://localhost:5173/api/v1/health
-      - name: The 16 tables exist
+      - name: The 17 tables exist
         run: |
           count=$(docker compose --project-directory . --env-file .env -f infra/docker-compose.yml \
             exec -T db psql -U recap -d recap -Atc \
             "select count(*) from information_schema.tables where table_schema = 'public' and table_name <> 'schema_migrations'")
-          test "$count" = "16"
+          test "$count" = "17"
       - name: Logs on failure
         if: failure()
         run: docker compose --project-directory . --env-file .env -f infra/docker-compose.yml logs
