@@ -64,16 +64,11 @@ jobs:
           git diff --exit-code -- drizzle
           test -z "$(git status --porcelain -- drizzle)"
 
-  # TEMPORARY (Segment 2A → 2B). The subjects and documents specification in
-  # backend/tests/documents/ fails until Segment 2B implements the documents module, so it runs
-  # here without blocking merges.
-  # Segment 2B: when it passes, delete this job (the tests then run in the `backend` job).
+  # The subjects and documents specification (backend/tests/documents/) also runs in the `backend`
+  # job above; this job keeps it visible as a check of its own. It blocks merging.
   documents-spec:
-    name: Documents specification (expected to fail until Segment 2B)
+    name: Documents specification
     runs-on: ubuntu-latest
-    # Segment 2B must remove this marker together with the whole job once the tests pass: from
-    # then on a failing documents test has to fail the build (it runs in the `backend` job).
-    continue-on-error: true
     services:
       postgres:
         image: postgres:16-alpine
@@ -101,7 +96,7 @@ jobs:
           cache-dependency-path: backend/package-lock.json
       - run: npm ci
       - name: Documents specification
-        run: npm run test:documents
+        run: npm test -- tests/documents
 
   frontend:
     name: Frontend (lint, tests, build)

@@ -113,7 +113,6 @@ Până la Segmentul 8 nu se trimit e-mailuri: în dezvoltare, legătura de reset
 | `make seed`            | Scrie setările implicite care lipsesc                                         |
 | `make admin EMAIL=…`   | Creează un cont de administrator; parola se cere interactiv                   |
 | `make test`            | Testele backend (au nevoie de `TEST_DATABASE_URL`) și frontend                |
-| `make test-documents`  | Temporar: specificația materiilor și documentelor, care pică până la Segmentul 2B |
 | `make lint`            | ESLint, Prettier și `tsc --noEmit`, backend și frontend                       |
 | `make format`          | Rescrie fișierele cu Prettier                                                 |
 | `make openapi`         | Regenerează `docs/openapi.json` și tipurile frontendului                      |
