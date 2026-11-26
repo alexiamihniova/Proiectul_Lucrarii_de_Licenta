@@ -86,6 +86,75 @@ function hyphenContinues(before: string, after: string): boolean {
   return /\p{L}-$/u.test(before) && /^\p{Ll}/u.test(after);
 }
 
+// --- titles and list items -------------------------------------------------------------------
+
+/** A line that opens a list item: "- text", "• text", "1. text", "2) text", "a) text". */
+const LIST_MARKER = /^(?:[-–—•·▪*]|\(?\d{1,3}[.)]|\(?[a-z]\))\s+\S/u;
+
+/** A line that begins a unit of its own: a capital letter, a digit or a list marker. */
+const STARTS_A_UNIT = /^(?:\p{Lu}|\d|[-–—•·▪*]\s)/u;
+
+/** A line that ends a sentence, or a clause: `. ! ? … : ; ,` and the closing marks after it. */
+const ENDS_A_CLAUSE = /[.!?…:;,]["”»)\]]*$/;
+
+const MAX_TITLE_WORDS = 12;
+/** A title is shorter than this share of the long lines of its page; a wrapped line is not. */
+const TITLE_SHARE_OF_LONG_LINE = 0.6;
+/** The "long lines" of a page: the line length that nine tenths of the lines do not exceed. */
+const LONG_LINE_QUANTILE = 0.9;
+
+/** The length of the long lines of a page, to tell a short title from a line that was wrapped. */
+function longLineLength(lines: string[]): number {
+  const lengths = lines
+    .filter((line) => line !== '')
+    .map((line) => line.length)
+    .sort((a, b) => a - b);
+  return (
+    lengths[Math.min(lengths.length - 1, Math.floor(lengths.length * LONG_LINE_QUANTILE))] ?? 0
+  );
+}
+
+/**
+ * A short line without a final mark: a title, or the last line of a list. A line wrapped by the
+ * page is not one — it runs to the margin, so it is as long as the long lines of its page.
+ */
+function looksLikeTitle(line: string, longLine: number): boolean {
+  return (
+    !ENDS_A_CLAUSE.test(line) &&
+    countWords(line) <= MAX_TITLE_WORDS &&
+    line.length <= TITLE_SHARE_OF_LONG_LINE * longLine
+  );
+}
+
+/**
+ * Splits the lines of one block into the units a reader sees. A new unit starts at:
+ *  - a list item ("- text", "1. text", "a) text");
+ *  - the line after a title (a capital letter, a digit or a marker where the title ended);
+ *  - a title itself, when it stands between complete lines: the line before ends with a mark
+ *    and the line after starts a unit.
+ * Everything else is the same paragraph wrapped over several lines. Each unit is later split into
+ * sentences, so a title or an item is never glued to the text around it (design 3.3, rule 3).
+ */
+function unitsOf(lines: string[], longLine: number): string[][] {
+  const units: string[][] = [];
+  for (const [index, line] of lines.entries()) {
+    const previous = lines[index - 1];
+    const next = lines[index + 1];
+    const startsNew =
+      previous === undefined ||
+      LIST_MARKER.test(line) ||
+      (STARTS_A_UNIT.test(line) && looksLikeTitle(previous, longLine)) ||
+      (STARTS_A_UNIT.test(line) &&
+        looksLikeTitle(line, longLine) &&
+        ENDS_A_CLAUSE.test(previous) &&
+        next !== undefined &&
+        STARTS_A_UNIT.test(next));
+    if (startsNew) units.push([line]);
+    else units[units.length - 1]!.push(line);
+  }
+  return units;
+}
+
 /** The paragraph ended its sentence: `. ! ? … : ;`, maybe followed by closing quotes or brackets. */
 const ENDS_SENTENCE = /[.!?…:;]["”»)\]]*$/;
 
@@ -112,9 +181,10 @@ function paragraphsOf(pages: { number: number; lines: string[] }[]): Paragraph[]
     }
     if (block.length > 0) blocks.push(block);
 
+    const longLine = longLineLength(page.lines);
     let last: Paragraph | null = null;
     let first = true;
-    for (const lines of blocks) {
+    for (const lines of blocks.flatMap((block) => unitsOf(block, longLine))) {
       const text = joinLines(lines);
       if (!HAS_LETTER_OR_DIGIT.test(text)) continue; // a separator, a lone symbol: not text
       if (first && carry && !ENDS_SENTENCE.test(carry.text) && /^\p{Ll}/u.test(text)) {

@@ -1,8 +1,9 @@
 # Testele materiilor și documentelor (Segmentele 2A și 2B)
 
-Specificația executabilă a Segmentului 2 este în `backend/tests/documents/`: 14 fișiere, 297 de
-teste: 262 scrise în 2A și 35 adăugate în 2B pentru ce specificația atinge doar prin fișiere întregi
-(`docx-and-layout`, `pdf-page-counter`, `pdf-reader-process`). Ele descriu comportarea definită în
+Specificația executabilă a Segmentului 2 este în `backend/tests/documents/`: 15 fișiere, 310 de
+teste: 262 scrise în 2A și 48 adăugate în 2B pentru ce specificația atinge doar prin fișiere întregi
+(`docx-and-layout`, `pdf-page-counter`, `pdf-reader-process`) și pentru titluri și liste
+(`titles-and-lists`). Ele descriu comportarea definită în
 `docs/design/documents.md`; 2B a implementat-o fără să modifice vreun test din 2A. Tabelele de mai jos leagă fiecare grup de cazuri de cerința
 din SRS sau din Dosar.
 
@@ -20,7 +21,7 @@ neblocant. Până la 2B ele picau contra rutelor `501` și erau ținute separat.
 ## Cum au fost verificate
 
 În 2A, pe o implementare de probă, scrisă separat și păstrată în afara repo-ului; în 2B, pe
-implementarea reală: toate cele 297 trec. Implementarea de probă a descoperit patru greșeli de-ale
+implementarea reală: toate cele 310 trec. Implementarea de probă a descoperit patru greșeli de-ale
 testelor în 2A, corectate înainte de commit:
 
 - un student făcea peste 10 încărcări într-un fișier și lovea limita zilnică (acum limita
@@ -120,6 +121,16 @@ testele noi de 2B (geometrie în `docx-and-layout`, momentul în care se constru
 | Așezarea textului unui PDF: rânduri, paragrafe, două coloane, titlu peste coloane       | RF4, design 3.7    |
 | Numărătorul real: pagini, `unreadable`, `timeout`, `memory` fără oprirea aplicației, cel mult 4 simultan | Q48 |
 | Citirea PDF într-un proces copil: oprire prin semnal, bombă de conținut care nu blochează bucla de evenimente, depășire de heap | Q48, design 3.7 |
+
+### `titles-and-lists.test.ts` (13)
+
+| Caz                                                                                   | Cerință            |
+| ------------------------------------------------------------------------------------- | ------------------ |
+| Un titlu în același bloc de rânduri cu textul de după el este propoziție separată, și propriul paragraf | design 3.3 |
+| Fiecare element de listă (liniuță, buline, numere, litere) este propoziție separată; continuarea lui cu literă mică rămâne cu el | design 3.3 |
+| Un rând rupt de pagină, chiar urmat de un nume propriu, și rândurile scurte din coloane NU sunt titluri | design 3.3 |
+| Un rând scurt urmat de unul cu literă mică, sau încheiat cu semn, nu este titlu | design 3.3 |
+| Documentele cu paragrafe separate prin rânduri goale nu se schimbă; titlul pe o pagină PDF își păstrează pagina | design 3.3 |
 
 ### `file-store.test.ts` (21)
 

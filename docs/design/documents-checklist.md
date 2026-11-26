@@ -82,8 +82,9 @@ Referințe: `docs/design/documents.md` (secțiunile din paranteze), ADR-0003, AD
 - [ ] Pe un curs real al autoarei, propozițiile și pasajele arată rezonabil: verificare manuală,
       cu 2–3 documente, înainte de Segmentul 3. *(a autoarei. Statistici pe 4 documente reale,
       fără a citi conținutul: pasaje de 100–300 de cuvinte, propoziții cu mediana de 64–109
-      caractere, dar cu cel mai lung rând de 467–2256 de caractere: titluri și liste fără punct,
-      deci de privit cu ochii.)*
+      caractere. Titlurile și elementele de listă fără punct se separă acum (26.11.2026): rânduri de
+      peste 300 de caractere, de la 4–16 pe document la 0–9; rămân cele din coduri sursă lipite în
+      rapoarte, cu rânduri de până la 2083 de caractere. De privit cu ochii.)*
 
 ## D. Analiza și stările (4)
 

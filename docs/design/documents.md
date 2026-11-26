@@ -231,6 +231,17 @@ rânduri goale. Curățarea, în ordine:
 3. Rândurile unui paragraf se unesc cu un spațiu. Dacă un rând se termină cu literă urmată de
    cratimă și următorul începe cu literă mică, se unesc fără spațiu, păstrând cratima
    („într-” + „o” → „într-o”). Nu se încearcă refacerea cuvintelor despărțite la capăt de rând.
+   **Titlurile și elementele de listă nu se lipesc de text.** Într-un bloc de rânduri fără rând
+   gol între ele, o unitate nouă (propriul paragraf) începe: (a) la un element de listă (`- `, `• `,
+   `1. `, `2) `, `a) `); (b) la rândul de după un titlu, dacă începe cu literă mare, cifră sau
+   marcaj; (c) la un titlu care stă între rânduri încheiate, când rândul de după începe o unitate.
+   Un **titlu** este un rând cu cel mult 12 cuvinte, fără semn de încheiere (`. ! ? … : ; ,`) și
+   mai scurt de 60 % din rândurile lungi ale paginii (cuantila de 90 %): un rând rupt de pagină
+   ajunge la margine, deci nu este titlu, chiar dacă următorul începe cu un nume propriu. Un rând
+   scurt urmat de unul cu literă mică este un rând rupt, nu un titlu. Constante: 12 cuvinte, 60 %,
+   cuantila de 90 % (propuse; verificate pe 5 documente reale, fără a fi validate pe altele).
+   **Limită cunoscută:** codul sursă din documente (liste de cod în rapoarte de laborator) nu are
+   propoziții; rămân „propoziții” lungi, tăiate la 300 de cuvinte (3.4).
 4. Un paragraf continuă pe pagina următoare dacă ultimul paragraf al paginii nu se termină cu
    `. ! ? … : ;` (eventual urmate de ghilimele sau paranteze) și primul paragraf al paginii
    următoare începe cu literă mică.
