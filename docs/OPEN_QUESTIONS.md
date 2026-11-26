@@ -582,9 +582,12 @@ dacă decizia schimbă schema sau contractul, segmentul respectiv face migrarea 
 - **Concluzie.** 5 s este de peste 8 ori timpul unui fișier legitim (0,64 s cel mai lent, 1,2 s la
   prima pornire) și oprește cazurile ostile la cel mult 5 s. **256 MB rămâne valoarea implicită**
   fiindcă un test din 2A (`pdf-page-limit.test.ts`) o fixează; este de 16 ori mai mult decât
-  cere un fișier legitim, iar o valoare de 64 MB ar refuza fișierele ostile de două ori mai repede
-  fără să afecteze vreun fișier măsurat. Dacă vrei 64 MB ca valoare implicită, trebuie schimbat și
-  acel test (cu aprobarea ta); până atunci se poate seta `PDF_PAGE_COUNT_MEMORY_MB=64` în `.env`.
+  cere un fișier legitim.
+- **Decizie (26.11.2026).** 256 MB rămâne valoarea implicită, ca să nu se modifice un test din 2A.
+  **64 MB refuză fișierele ostile de două ori mai repede** (2,2 s față de 4,9 s pe fișierul cu un
+  milion de obiecte) și nu afectează niciun fișier măsurat (toate se numără și cu 64 MB). Se revine
+  la asta la întărirea securității (Segmentul 10), când se poate schimba și testul care fixează
+  256; până atunci `PDF_PAGE_COUNT_MEMORY_MB=64` în `.env` face aceeași treabă.
 - **Citirea textului unui PDF la analiză, măsurată (26.11.2026).** Rulată în procesul workerului, o
   „bombă” Flate într-un conținut de pagină (50, 300 și 1500 MB despachetați) a ținut ocupată
   bucla de evenimente cât a durat citirea (9 s pentru 1500 MB), iar cronometrul de 60 s nu poate
@@ -688,6 +691,14 @@ dacă decizia schimbă schema sau contractul, segmentul respectiv face migrarea 
   este funcția primită de modul (Q52).
 - **Ce nu s-a făcut, intenționat.** Înregistrarea sarcinilor în `collectTasks()` din
   `backend/src/worker.ts`: fără ea, un document încărcat rămâne „În coadă”. Este 2C.
+- **Decizie (26.11.2026).** 2B nu pornește procesarea; 2C înregistrează `processNextDocument`,
+  `failStuckDocuments` și `documentsWorkerTasks` în `worker.ts`. **Jobul `documents-spec` din CI se
+  șterge în primul commit al lui 2C**, fiindcă testele rulează oricum în jobul `backend`.
+- **Node.** Imaginile Docker (`node:24-alpine`), CI (`node-version: 24`) și `.nvmrc` (24) au același
+  major, iar `engines` cere 22.13 sau mai mult (cerința lui `pdfjs-dist`); minorul nu este fixat în
+  niciuna. **Neverificat:** CI testează procesul copil pentru PDF doar pe Ubuntu (glibc); imaginea
+  Alpine (musl) este pornită de jobul Compose, dar nu numără pagini. De adăugat la 2C un pas în
+  jobul Compose care numără paginile unui PDF mic în imagine.
 - **De hotărât la 2C.** (1) Limita de memorie a containerului workerului: memoria din afara
   heap-ului nu este limitată de procesele copil (Q48). (2) Dacă `analyseDocument` rulează în același
   proces cu extragerea; Segmentul 3 o furnizează. (3) Câte documente în paralel (acum unul, în

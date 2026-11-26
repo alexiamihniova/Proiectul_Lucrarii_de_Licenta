@@ -179,3 +179,13 @@ Allowed dependency direction between modules (no cycles):
    ones that block you.
 3. Read your module's `service.ts` comment and the routes in its `router.ts`.
 4. Plan first, wait for confirmation, then build in small steps with one commit per step.
+
+## Git la finalul fiecărui segment
+
+- Fiecare segment are ramura lui, `segment-<id>-<nume>`, pornită din vârful ultimului segment acceptat.
+- Commit-uri mici pe parcurs, în același stil ca istoricul existent.
+- La final, dacă lint, testele, check-generated și CI sunt verzi, fă un commit de închidere
+  `segment-<id>: <rezumat într-o linie>` și pune eticheta `segment-<id>-gata`. Publică ramura și eticheta.
+- Fără force push și fără îmbinare în main: o fac eu, după verificarea secțiunii C.
+- Nu comite `.env`, `backend/storage/` sau chei. Verifică `git status` înainte de fiecare commit.
+- Raportul final trece hash-ul commit-ului de închidere, numărul de commit-uri și starea CI.

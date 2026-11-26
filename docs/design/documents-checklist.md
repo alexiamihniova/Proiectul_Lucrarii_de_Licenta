@@ -33,6 +33,8 @@ Referințe: `docs/design/documents.md` (secțiunile din paranteze), ADR-0003, AD
       fără cod executat, fără compilare nativă; cere Node 22.13+, iar `engines` o spune). DOCX se
       citește fără bibliotecă (`node:zlib`); ZIP-ul exportului la fel.
 - [x] `make lint`, `make check-generated` trec; `docs/openapi.json` nu s-a schimbat în 2B.
+- [x] Node: imaginile Docker (`node:24-alpine`), CI (`node-version: 24`) și `.nvmrc` (24) au același
+      major, peste cerința de 22.13 a `pdfjs-dist`; minorul nu este fixat nicăieri (Q54).
 - [x] `docs/OPEN_QUESTIONS.md`: Q12, Q13, Q16, Q17, Q46–Q50 confirmate; Q51 și Q52 amânate către
       Segmentul 3; Q53 (60 s) confirmată ca valoare configurabilă, de validat în Segmentul 3; Q48 are
       măsurătorile numărării paginilor și ale citirii PDF.
@@ -126,6 +128,9 @@ Referințe: `docs/design/documents.md` (secțiunile din paranteze), ADR-0003, AD
 
 ## G. Ce rămâne pentru alte segmente
 
+- [ ] **Segmentul 2C, primul commit:** se șterge jobul `documents-spec` din `.github/workflows/ci.yml`
+      (redundant cu jobul `backend`).
+- [ ] **Segmentul 2C:** un pas în jobul Compose numără paginile unui PDF mic în imaginea Alpine.
 - [ ] **Segmentul 2C:** sarcinile din `documentsWorkerTasks` sunt înregistrate în `collectTasks()` din
       `backend/src/worker.ts` (funcția și pașii sunt gata și testați; nu sunt pornite într-un proces);
       containerul workerului are limită de memorie.
