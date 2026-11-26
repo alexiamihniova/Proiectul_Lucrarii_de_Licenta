@@ -584,6 +584,17 @@ dacă decizia schimbă schema sau contractul, segmentul respectiv face migrarea 
   cere un fișier legitim, iar o valoare de 64 MB ar refuza fișierele ostile de două ori mai repede
   fără să afecteze vreun fișier măsurat. Dacă vrei 64 MB ca valoare implicită, trebuie schimbat și
   acel test (cu aprobarea ta); până atunci se poate seta `PDF_PAGE_COUNT_MEMORY_MB=64` în `.env`.
+- **Citirea textului unui PDF la analiză, măsurată (26.11.2026).** Rulată în procesul workerului, o
+  „bombă” Flate într-un conținut de pagină (50, 300 și 1500 MB despachetați) a ținut ocupată
+  bucla de evenimente cât a durat citirea (9 s pentru 1500 MB), iar cronometrul de 60 s nu poate
+  întrerupe cod sincron. Citirea rulează acum într-un proces copil, ca numărarea: la aceleași
+  fișiere, bucla procesului părinte se oprește cel mult 30 ms, iar o oprire cerută de semnal ucide
+  copilul în 3,0 s. Rapoarte reale de 28–36 de pagini se citesc în 0,3–0,5 s și au nevoie de mai
+  puțin de 64 MB de heap; valoarea implicită `PDF_EXTRACT_MEMORY_MB` este 512. **Rămâne neacoperit:**
+  memoria din afara heap-ului (octeții despachetați) nu este limitată de `--max-old-space-size`; un
+  conținut care se despachetează în zeci de GB poate consuma memoria mașinii până la timeout
+  (60 s). Plasa corectă este o limită a containerului workerului (`mem_limit` în Compose, sau
+  cgroup), care ține de infrastructură și de Segmentul 2C; nu este pusă.
 - **Limite ale măsurătorilor.** Numai PDF-uri făcute de macOS, CUPS și programele care au produs
   documentele reale; niciun PDF scanat real cu OCR, niciun PDF de 50 MB, nicio măsurătoare pe
   Linux/Docker. Memoria în afara heap-ului (octeții fișierului) nu este limitată de

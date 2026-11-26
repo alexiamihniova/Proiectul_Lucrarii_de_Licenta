@@ -79,7 +79,12 @@ export function createDocumentsService(deps: DocumentsServiceDeps): DocumentsSer
   const { config, db, log } = deps;
   const repository = createDocumentsRepository(db);
   const files = createFileStore(config.upload.dir);
-  const extractor = deps.textExtractor ?? createTextExtractor();
+  const extractor =
+    deps.textExtractor ??
+    createTextExtractor({
+      pdfMemoryMb: config.documents.extractMemoryMb,
+      maxPages: config.upload.maxPages,
+    });
   const pageCounter = deps.pdfPageCounter ?? createPdfPageCounter();
   const analyse = deps.analyseDocument ?? (async () => undefined);
   const now = deps.now ?? (() => new Date());

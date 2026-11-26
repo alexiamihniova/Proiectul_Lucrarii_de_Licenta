@@ -294,7 +294,7 @@ alta. Reguli:
 - TXT: UTF-8 (cu sau fără BOM); UTF-16 cu BOM; altfel Windows-1250 (fișiere românești vechi).
 - DOCX: paragrafele din `word/document.xml`, în ordine, inclusiv cele din tabele. Fără antete,
   subsoluri, note și comentarii.
-- PDF: textul fiecărei pagini, cu rânduri și paragrafe refăcute din pozițiile fragmentelor.
+- PDF: textul fiecărei pagini, cu rânduri și paragrafe refăcute din pozițiile fragmentelor. **Fișierul se citește într-un proces copil** (ca la numărarea paginilor, 2.5), cu limită de heap (`PDF_EXTRACT_MEMORY_MB`, 512) și oprit prin semnalul analizei: un cronometru nu poate întrerupe cod sincron, iar un conținut de pagină care se despachetează în gigaocteți ar bloca sau epuiza procesul care servește pe toată lumea. Procesul copil trimite fragmentele de text cu poziții; așezarea în pagină se face în procesul părinte. Un PDF cu mai multe pagini decât limita este refuzat înainte să se citească vreun text.
 - Fișier corupt, protejat cu parolă sau fără text → `TEXT_NOT_EXTRACTABLE` (M06).
 - Arhiva DOCX se citește cu limită: `word/document.xml` despachetat nu depășește 100 MB.
 - Extragerea respectă `signal` și se oprește la anulare.

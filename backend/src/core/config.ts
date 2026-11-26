@@ -72,6 +72,7 @@ const envSchema = z
     DOCUMENT_PROCESSING_TIMEOUT_SECONDS: int(1, 600).default(60),
     PDF_PAGE_COUNT_TIMEOUT_SECONDS: int(1, 60).default(5),
     PDF_PAGE_COUNT_MEMORY_MB: int(64, 2048).default(256),
+    PDF_EXTRACT_MEMORY_MB: int(64, 8192).default(512),
     DELETED_DOCUMENT_RETENTION_HOURS: int(1, 720).default(48),
 
     WORKER_POLL_INTERVAL_MS: int(100, 60_000).default(1000),
@@ -159,6 +160,8 @@ export interface Config {
     pageCountTimeoutSeconds: number;
     /** Q48: and when the counting process needs more heap than this. */
     pageCountMemoryMb: number;
+    /** Q48: the heap of the process that reads the text of a PDF at analysis. */
+    extractMemoryMb: number;
     /** Q12: soft-deleted rows are removed for good after this long. */
     deletedRetentionHours: number;
   };
@@ -218,6 +221,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
       processingTimeoutSeconds: e.DOCUMENT_PROCESSING_TIMEOUT_SECONDS,
       pageCountTimeoutSeconds: e.PDF_PAGE_COUNT_TIMEOUT_SECONDS,
       pageCountMemoryMb: e.PDF_PAGE_COUNT_MEMORY_MB,
+      extractMemoryMb: e.PDF_EXTRACT_MEMORY_MB,
       deletedRetentionHours: e.DELETED_DOCUMENT_RETENTION_HOURS,
     },
     auth: {

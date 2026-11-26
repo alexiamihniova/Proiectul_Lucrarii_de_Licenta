@@ -21,7 +21,22 @@ export function decodeText(content: Buffer): string {
   }
 }
 
-export function createTextExtractor(): TextExtractor {
+export interface TextExtractorOptions {
+  /** Heap limit of the process that reads a PDF, in MB. */
+  pdfMemoryMb?: number;
+  /** A PDF with more pages is refused before its text is read. */
+  maxPages?: number;
+}
+
+/** Large enough for any real file that passes the upload limits (OPEN_QUESTIONS, Q48). */
+const DEFAULT_PDF_MEMORY_MB = 512;
+const DEFAULT_MAX_PAGES = 100;
+
+export function createTextExtractor(options: TextExtractorOptions = {}): TextExtractor {
+  const pdf = {
+    memoryMb: options.pdfMemoryMb ?? DEFAULT_PDF_MEMORY_MB,
+    maxPages: options.maxPages ?? DEFAULT_MAX_PAGES,
+  };
   return {
     async extract({ format, content }, signal): Promise<ExtractedText> {
       signal.throwIfAborted();
@@ -31,7 +46,7 @@ export function createTextExtractor(): TextExtractor {
       if (format === 'docx') {
         return { paged: false, pages: [{ number: 1, text: readDocxText(content) }] };
       }
-      if (format === 'pdf') return { paged: true, pages: await readPdfPages(content, signal) };
+      if (format === 'pdf') return { paged: true, pages: await readPdfPages(content, signal, pdf) };
       throw new AppError('UNSUPPORTED_FILE_FORMAT');
     },
   };

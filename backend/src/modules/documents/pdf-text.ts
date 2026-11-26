@@ -1,3 +1,6 @@
+import { spawn } from 'node:child_process';
+import { createRequire } from 'node:module';
+import { pathToFileURL } from 'node:url';
 import { AppError } from '../../core/errors.js';
 import type { RawPage } from './types.js';
 
@@ -132,66 +135,157 @@ export function pageText(fragments: TextFragment[]): string {
 
 // --- reading the file ------------------------------------------------------------------------
 
-interface PdfItem {
-  str?: string;
-  transform?: number[];
-  width?: number;
-  height?: number;
+/**
+ * The file is untrusted, so pdf.js runs in a CHILD PROCESS that can be killed: a page whose
+ * contents unpack to gigabytes, or a loop in the parser, would otherwise block or exhaust the
+ * process that serves everyone (a timer cannot interrupt synchronous code). The child sends one
+ * JSON line per page, with the positioned fragments of its text; the layout (lines, paragraphs,
+ * columns) is done here, in `pageText`, which is plain code that needs no isolation.
+ */
+const CHILD_SOURCE = `
+const chunks = [];
+for await (const chunk of process.stdin) chunks.push(chunk);
+const send = (value) => new Promise((resolve) => process.stdout.write(JSON.stringify(value) + '\\n', resolve));
+const maxPages = Number(process.argv[2]);
+try {
+  const pdfjs = await import(process.argv[1]);
+  const task = pdfjs.getDocument({
+    data: new Uint8Array(Buffer.concat(chunks)),
+    isEvalSupported: false,
+    disableFontFace: true,
+    useSystemFonts: false,
+    verbosity: 0,
+  });
+  const document = await task.promise;
+  await send({ pages: document.numPages });
+  if (document.numPages > maxPages) process.exit(0);
+  for (let number = 1; number <= document.numPages; number += 1) {
+    const page = await document.getPage(number);
+    const { items } = await page.getTextContent();
+    const fragments = [];
+    for (const item of items) {
+      if (typeof item.str !== 'string' || !item.transform) continue;
+      fragments.push([item.str, item.transform[4] ?? 0, item.transform[5] ?? 0, item.width ?? 0,
+        item.height || Math.abs(item.transform[3] ?? 0) || 1]);
+    }
+    await send({ number, fragments });
+    page.cleanup();
+  }
+  await send({ done: true });
+  process.exit(0);
+} catch {
+  process.exit(3); // corrupt, protected or not a PDF
+}
+`;
+
+const PDFJS_URL = pathToFileURL(
+  createRequire(import.meta.url).resolve('pdfjs-dist/legacy/build/pdf.mjs'),
+).href;
+
+/** More than this much output from the child is not a text: it is killed (a hostile file). */
+const MAX_CHILD_OUTPUT_BYTES = 256 * 1024 * 1024;
+
+export interface PdfReadOptions {
+  /** Heap limit of the child process, in MB (`--max-old-space-size`). */
+  memoryMb: number;
+  /** A PDF with more pages is refused before any text is read: `FILE_TOO_LARGE`. */
+  maxPages: number;
 }
 
-type PdfDocument = {
-  numPages: number;
-  getPage(number: number): Promise<{
-    getTextContent(): Promise<{ items: PdfItem[] }>;
-    cleanup(): void;
-  }>;
-};
-
-/** What pdf.js is given to open a file: no eval, no fonts to load, nothing to run. */
-export const PDF_OPEN_OPTIONS = {
-  isEvalSupported: false,
-  disableFontFace: true,
-  useSystemFonts: false,
-  verbosity: 0,
-} as const;
+type ChildLine =
+  | { pages: number }
+  | { number: number; fragments: [string, number, number, number, number][] }
+  | { done: true };
 
 /**
  * The pages of a PDF as text. `TEXT_NOT_EXTRACTABLE` for a file that cannot be opened (corrupt,
- * protected by a password) or read. Stops between pages when `signal` is aborted.
+ * protected by a password), cannot be read within the memory limit or is stopped; the work ends
+ * when `signal` is aborted (the child is killed).
  */
-export async function readPdfPages(content: Buffer, signal: AbortSignal): Promise<RawPage[]> {
-  const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
-  const task = pdfjs.getDocument({ data: new Uint8Array(content), ...PDF_OPEN_OPTIONS });
-  try {
-    const document = (await task.promise.catch(() => {
-      throw new AppError('TEXT_NOT_EXTRACTABLE');
-    })) as unknown as PdfDocument;
+export function readPdfPages(
+  content: Buffer,
+  signal: AbortSignal,
+  options: PdfReadOptions,
+): Promise<RawPage[]> {
+  if (signal.aborted) return Promise.reject(signal.reason as Error);
+  return new Promise((resolve, reject) => {
+    const child = spawn(
+      process.execPath,
+      [
+        `--max-old-space-size=${options.memoryMb}`,
+        '--input-type=module',
+        '--eval',
+        CHILD_SOURCE,
+        PDFJS_URL,
+        String(options.maxPages),
+      ],
+      // No environment: the child needs nothing from ours, and must not inherit secrets or loaders.
+      { stdio: ['pipe', 'pipe', 'ignore'], env: {}, windowsHide: true },
+    );
+
+    let settled = false;
+    let declaredPages: number | null = null;
+    let finished = false;
+    let received = 0;
+    let buffered = '';
     const pages: RawPage[] = [];
-    for (let number = 1; number <= document.numPages; number += 1) {
-      signal.throwIfAborted();
-      const page = await document.getPage(number);
-      const { items } = await page.getTextContent();
-      const fragments: TextFragment[] = items.flatMap((item) =>
-        typeof item.str === 'string' && item.transform
-          ? [
-              {
-                text: item.str,
-                x: item.transform[4] ?? 0,
-                y: item.transform[5] ?? 0,
-                width: item.width ?? 0,
-                height: item.height || Math.abs(item.transform[3] ?? 0) || 1,
-              },
-            ]
-          : [],
-      );
-      pages.push({ number, text: pageText(fragments) });
-      page.cleanup();
-    }
-    return pages;
-  } catch (error) {
-    if (error instanceof AppError || signal.aborted) throw error;
-    throw new AppError('TEXT_NOT_EXTRACTABLE');
-  } finally {
-    await task.destroy().catch(() => undefined);
-  }
+    const end = (outcome: () => void) => {
+      if (settled) return;
+      settled = true;
+      signal.removeEventListener('abort', onAbort);
+      child.kill('SIGKILL'); // no-op when it has already ended
+      outcome();
+    };
+    const fail = () => end(() => reject(new AppError('TEXT_NOT_EXTRACTABLE')));
+    const onAbort = () => end(() => reject(signal.reason as Error));
+    signal.addEventListener('abort', onAbort, { once: true });
+
+    const handle = (line: ChildLine) => {
+      if ('pages' in line) {
+        declaredPages = line.pages;
+        if (line.pages > options.maxPages) {
+          end(() =>
+            reject(
+              new AppError('FILE_TOO_LARGE', {
+                exceeded: 'pages',
+                limit_pages: options.maxPages,
+                pages: line.pages,
+              }),
+            ),
+          );
+        }
+      } else if ('fragments' in line) {
+        pages.push({
+          number: line.number,
+          text: pageText(
+            line.fragments.map(([text, x, y, width, height]) => ({ text, x, y, width, height })),
+          ),
+        });
+      } else {
+        finished = true;
+      }
+    };
+
+    child.stdout.setEncoding('utf8').on('data', (text: string) => {
+      received += text.length;
+      if (received > MAX_CHILD_OUTPUT_BYTES) return fail();
+      buffered += text;
+      for (let at = buffered.indexOf('\n'); at >= 0; at = buffered.indexOf('\n')) {
+        const line = buffered.slice(0, at);
+        buffered = buffered.slice(at + 1);
+        try {
+          handle(JSON.parse(line) as ChildLine);
+        } catch {
+          return fail();
+        }
+      }
+    });
+    child.stdin.on('error', () => undefined); // the child may die before it has read the file
+    child.on('error', fail);
+    child.on('close', () => {
+      if (finished && declaredPages === pages.length) end(() => resolve(pages));
+      else fail();
+    });
+    child.stdin.end(content);
+  });
 }
