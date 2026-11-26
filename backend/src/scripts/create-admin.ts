@@ -3,7 +3,8 @@ import { pino } from 'pino';
 import { ConfigError, loadConfig, loadEnvFile } from '../core/config.js';
 import { AppError } from '../core/errors.js';
 import { createDatabase } from '../db/client.js';
-import { createAuthService, createPendingUserFileStore } from '../modules/auth/service.js';
+import { createAuthService } from '../modules/auth/service.js';
+import { createDocumentsService } from '../modules/documents/service.js';
 
 /**
  * Creates an administrator account (SRS 2.1.8; docs/design/auth.md, 6.4; Q21). There is no
@@ -84,7 +85,7 @@ async function main(): Promise<number> {
       db,
       log,
       sendPasswordResetEmail: async () => undefined,
-      userFiles: createPendingUserFileStore(log),
+      userFiles: createDocumentsService({ config, db, log }).userFiles,
     });
     const user = await auth.createAdmin({ email, password: await readPassword() });
     process.stderr.write(`Cont de administrator creat: ${user.email} (id ${user.id}).\n`);

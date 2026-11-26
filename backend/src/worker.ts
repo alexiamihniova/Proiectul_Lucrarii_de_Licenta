@@ -6,11 +6,8 @@ import type { WorkerTask } from './core/worker.js';
 import { startWorker } from './core/worker.js';
 import { createDatabase } from './db/client.js';
 import type { Database } from './db/client.js';
-import {
-  authWorkerTasks,
-  createAuthService,
-  createPendingUserFileStore,
-} from './modules/auth/service.js';
+import { authWorkerTasks, createAuthService } from './modules/auth/service.js';
+import { createDocumentsService } from './modules/documents/service.js';
 import { createPasswordResetSender } from './modules/reminders/service.js';
 
 /**
@@ -22,11 +19,11 @@ function collectTasks(deps: { config: Config; db: Database; log: Logger }): Work
   const auth = createAuthService({
     ...deps,
     sendPasswordResetEmail: createPasswordResetSender(deps),
-    userFiles: createPendingUserFileStore(deps.log),
+    userFiles: createDocumentsService(deps).userFiles,
   });
   return [
     ...authWorkerTasks(auth),
-    // Segment 2/3: ...documentsWorkerTasks(deps)
+    // Segment 2C: ...documentsWorkerTasks(createDocumentsService({ ...deps, analyseDocument }))
     // Segment 7:   ...adminWorkerTasks(deps)
     // Segment 8:   ...remindersWorkerTasks(deps)
   ];

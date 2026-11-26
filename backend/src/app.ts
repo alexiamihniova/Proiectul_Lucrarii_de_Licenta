@@ -13,14 +13,11 @@ import type { Database } from './db/client.js';
 import { adminRouter } from './modules/admin/router.js';
 import { analysisRouter } from './modules/analysis/router.js';
 import { authRouter } from './modules/auth/router.js';
-import {
-  createAuthService,
-  createPendingUserFileStore,
-  registerAuthHooks,
-} from './modules/auth/service.js';
+import { createAuthService, registerAuthHooks } from './modules/auth/service.js';
 import type { SendPasswordResetEmail, UserFileStore } from './modules/auth/service.js';
 import { contentRouter } from './modules/content/router.js';
 import { documentsRouter } from './modules/documents/router.js';
+import { createDocumentsService } from './modules/documents/service.js';
 import type {
   AnalyseDocument,
   PdfPageCounter,
@@ -50,7 +47,7 @@ export interface AppDependencies {
    * (`createPasswordResetSender`). Tests pass a function that records the messages.
    */
   sendPasswordResetEmail?: SendPasswordResetEmail;
-  /** Removes a deleted account's uploaded files. Segment 2 provides the real one (Q43). */
+  /** Removes a deleted account's uploaded files. Defaults to the documents service's (Q43). */
   userFiles?: UserFileStore;
   /**
    * Concept extraction for a stored document (Segment 3). Defaults to an analysis that does
@@ -81,6 +78,17 @@ export async function buildApp(deps: AppDependencies): Promise<FastifyInstance> 
   app.decorate('config', deps.config);
   app.decorate('db', deps.db);
   app.decorate('llm', deps.llm ?? createLlmClient(deps.config));
+  app.decorate(
+    'documents',
+    createDocumentsService({
+      config: deps.config,
+      db: deps.db,
+      log: app.log,
+      ...(deps.analyseDocument ? { analyseDocument: deps.analyseDocument } : {}),
+      ...(deps.textExtractor ? { textExtractor: deps.textExtractor } : {}),
+      ...(deps.pdfPageCounter ? { pdfPageCounter: deps.pdfPageCounter } : {}),
+    }),
+  );
   // auth imports no other module: what it needs from them is passed in here.
   app.decorate(
     'auth',
@@ -91,7 +99,7 @@ export async function buildApp(deps: AppDependencies): Promise<FastifyInstance> 
       sendPasswordResetEmail:
         deps.sendPasswordResetEmail ??
         createPasswordResetSender({ config: deps.config, log: app.log }),
-      userFiles: deps.userFiles ?? createPendingUserFileStore(app.log),
+      userFiles: deps.userFiles ?? app.documents.userFiles,
     }),
   );
 

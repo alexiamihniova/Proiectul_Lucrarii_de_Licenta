@@ -33,7 +33,7 @@ interface OpenApi {
  * Tags (= modules) whose routes are implemented and therefore no longer answer 501.
  * A segment adds its tag here when it replaces its stubs, e.g. Segment 1B adds 'auth'.
  */
-const IMPLEMENTED_TAGS: string[] = ['auth'];
+const IMPLEMENTED_TAGS: string[] = ['auth', 'documents'];
 
 describe('API contract', () => {
   let app: FastifyInstance;

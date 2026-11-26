@@ -27,7 +27,6 @@ import type {
   AuthServiceDeps,
   IssuedSession,
   PublicUser,
-  UserFileStore,
   UserRecord,
 } from './types.js';
 
@@ -401,21 +400,4 @@ export function authWorkerTasks(service: AuthService): WorkerTask[] {
       },
     },
   ];
-}
-
-/**
- * Stands in for the file store until Segment 2 provides the real one (Q43): it deletes
- * nothing and says so in the log, so a deleted account's files are not silently forgotten.
- */
-export function createPendingUserFileStore(log: {
-  warn(obj: object, msg?: string): void;
-}): UserFileStore {
-  return {
-    deleteAllForUser: async (userId) => {
-      log.warn(
-        { user_id: userId },
-        'uploaded files of the deleted account were NOT removed: no file store yet (Segment 2)',
-      );
-    },
-  };
 }
