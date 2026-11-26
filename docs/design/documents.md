@@ -471,6 +471,12 @@ Nimic din Segmentul 2 nu apelează modelul de limbaj; ADR-0012 se aplică de la 
 
 ## 11. Ce are de făcut Segmentul 2B
 
+**Stare (26.11.2026): făcut.** Lista rămâne ca evidență; bifele cu fișierul și testul sunt în
+`documents-checklist.md`. Abateri de la listă: numărarea paginilor și citirea PDF rulează în procese
+copil, nu în fire (Q48); starea documentului este în `state-machine.ts`, nu în `state.ts`;
+`documentsWorkerTasks` este scrisă și testată, dar **nu este înregistrată în `worker.ts`**
+(Segmentul 2C); jobul `documents-spec` din CI a rămas, fără `continue-on-error`.
+
 0. **Corecția din 2A (făcută 23.11.2026).** Decizia Q48 a cerut corectarea unui test și teste noi:
    `processing.test.ts` verifică acum pagina-limită pentru un TXT, la analiză, și plasa de
    siguranță pentru un PDF care nu a putut fi numărat; `pdf-page-limit.test.ts` (19 teste)

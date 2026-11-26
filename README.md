@@ -5,11 +5,14 @@ licență, UTM). Studentul încarcă documente de curs (PDF, DOCX, TXT); un sing
 apelat doar de pe server, extrage concepte și generează materiale și teste cu sursă verificată;
 aplicația calculează stăpânirea pe concept și programează recapitularea cu SM-2.
 
-**Starea curentă: Segmentele 0 (fundația) și 1 (conturi și acces).** Există schema bazei de date,
+**Starea curentă: Segmentele 0 (fundația), 1 (conturi și acces) și 2 (materii și documente, fără
+coada din procesul worker: Segmentul 2C).** Există schema bazei de date,
 contractele API pentru toate cazurile de utilizare, configurarea, interfața către modelul de
 limbaj, infrastructura de dezvoltare și conturile: înregistrare, autentificare, sesiune,
-resetarea parolei, preferințe, export și ștergerea contului. Celelalte rute cer o sesiune și
-răspund `501` până la implementare, în Segmentele 2–8.
+resetarea parolei, preferințe, export și ștergerea contului, apoi materii, încărcarea documentelor
+(PDF, DOCX, TXT), extragerea textului în propoziții și pasaje, starea documentelor și fișierele.
+Un document încărcat rămâne „În coadă” până când Segmentul 2C pornește coada în worker. Celelalte
+rute cer o sesiune și răspund `501` până la implementare, în Segmentele 3–8.
 
 ## Documentație
 
@@ -151,7 +154,7 @@ peste mai multe module, ADR-0014). Detalii în
 | Segment | Conținut                               | Modul                     |
 | ------- | -------------------------------------- | ------------------------- |
 | 1       | Conturi, sesiune, preferințe, date personale | `auth`              |
-| 2       | Materii, încărcare, extragere de text, pasaje, stările documentului | `documents` |
+| 2       | Materii, încărcare, extragere de text, pasaje, stările documentului (2C: coada în worker) | `documents` |
 | 3       | Nucleul LLM: clientul real, extragerea conceptelor, verificarea surselor | `llm`, `analysis` |
 | 4       | Materiale și teste                     | `content`                 |
 | 5       | Stăpânire și SM-2                      | `mastery`                 |

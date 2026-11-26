@@ -67,6 +67,7 @@ dacă decizia schimbă schema sau contractul, segmentul respectiv face migrarea 
 | Q51 | Conceptele rămase fără pasaje după ștergerea unui document | 2, 3 | Amânată (3) |
 | Q52 | Analiza înainte de Segmentul 3: documentul devine „Gata” fără concepte | 2, 3 | Amânată (3) |
 | Q53 | Limita de 60 s pentru analiză: valoare provizorie | 2, 3 | Confirmată (provizorie) |
+| Q54 | Rularea cozii în procesul worker (Segmentul 2C) | 2 | Deschisă |
 
 ---
 
@@ -633,8 +634,11 @@ dacă decizia schimbă schema sau contractul, segmentul respectiv face migrarea 
   funcția respectivă dispare din `shared-queries`. Numărătorile pot rămâne acolo definitiv.
 - **Verificarea mutării (23.11.2026).** Testele din `tests/auth/` rămân neschimbate și trebuie să treacă
   atât înainte, cât și după mutare.
-- **Acum.** Mutarea și excepția ESLint sunt în lista de lucru a lui 2B; până atunci exportul
-  citește încă din `modules/auth/repository.ts`.
+- **Făcut în 2B (26.11.2026).** Modulul, excepția ESLint (numai pentru `shared-queries/**`; în rest, doar
+  un `repository.ts` poate importa schema sau `drizzle-orm`) și mutarea exportului. **Rămâne:**
+  `listUsers` din `auth/repository.ts` numără documentele unui utilizator cu SQL brut, deci tot o
+  citire peste tabelele altui modul; se mută aici la Segmentul 7, când se construiește lista de
+  conturi a administratorului.
 
 ### Q51. Conceptele rămase fără pasaje după ștergerea unui document
 
@@ -676,6 +680,19 @@ dacă decizia schimbă schema sau contractul, segmentul respectiv face migrarea 
 - **Decizie (23.11.2026).** Confirmat ca **valoare configurabilă**, de validat în Segmentul 3 pe un
   document real de 100 de pagini.
 - **Acum.** 60 s, configurabil. Nu schimbă nimic în 2B.
+
+### Q54. Rularea cozii în procesul worker (Segmentul 2C)
+
+- **Ce este gata.** `processNextDocument`, `failStuckDocuments`, `purgeDeletedDocuments`,
+  `removeOrphanFiles` și `documentsWorkerTasks` sunt scrise și testate ca funcții (2B); analiza
+  este funcția primită de modul (Q52).
+- **Ce nu s-a făcut, intenționat.** Înregistrarea sarcinilor în `collectTasks()` din
+  `backend/src/worker.ts`: fără ea, un document încărcat rămâne „În coadă”. Este 2C.
+- **De hotărât la 2C.** (1) Limita de memorie a containerului workerului: memoria din afara
+  heap-ului nu este limitată de procesele copil (Q48). (2) Dacă `analyseDocument` rulează în același
+  proces cu extragerea; Segmentul 3 o furnizează. (3) Câte documente în paralel (acum unul, în
+  serie).
+- **Acum.** `make dev` pornește workerul, dar documentele nu avansează.
 
 ---
 

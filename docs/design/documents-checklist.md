@@ -2,93 +2,132 @@
 
 Pentru sfârșitul Segmentului 2B și pentru recenzia finală (Segmentul 10). Fiecare punct se
 verifică în cod sau prin rulare; „testat” înseamnă că există un test care pică dacă punctul este
-încălcat.
+încălcat. Bifat = verificat la sfârșitul Segmentului 2B (26.11.2026), cu fișierul și testul care îl
+acoperă; secțiunea C (verificarea manuală pe documente reale) o face autoarea.
 
-Referințe: `docs/design/documents.md` (secțiunile din paranteze), ADR-0003, ADR-0008, ADR-0013.
+Referințe: `docs/design/documents.md` (secțiunile din paranteze), ADR-0003, ADR-0008, ADR-0013, ADR-0014.
 
 ## A. Predarea Segmentului 2B
 
-- [ ] `make test` rulează și testele din `backend/tests/documents/` și trece. **Excluderea a fost
-      eliminată**: nu mai există `backend/vitest.documents.config.ts`, scriptul `test:documents`,
-      ținta `test-documents` din Makefile, linia `exclude` din `backend/vitest.config.ts` și jobul
-      `documents-spec` din `.github/workflows/ci.yml`; paragraful „Temporary” din `CLAUDE.md` a
-      fost șters.
-- [ ] Niciun test din `backend/tests/documents/` nu a fost modificat, șters, sărit sau slăbit ca
-      să treacă. `git diff` față de commit-ul Segmentului 2A, pe acest director, este gol sau
-      conține doar corecții semnalate și aprobate.
-- [ ] `'documents'` a fost adăugat în `IMPLEMENTED_TAGS` din `tests/api-contract.test.ts`.
-- [ ] Interfețele din `modules/documents/types.ts` au aceeași formă; semnăturile
-      `createDocumentsService`, `structureText`, `createTextExtractor`, `documentsWorkerTasks` sunt
-      neschimbate.
-- [ ] Migrarea pentru `sentences` și pentru indexul `lower(name)` are inversă scrisă de mână;
-      `docs/DATA_MODEL.md` este actualizat; testul care numără tabelele spune 17 și trece.
-- [ ] Fiecare dependență nouă (PDF, DOCX) este justificată în mesajul de commit sau într-un ADR.
-- [ ] `make lint`, `make check-generated` trec; `docs/openapi.json` este la zi.
-- [ ] `docs/OPEN_QUESTIONS.md`: Q12, Q13, Q16, Q17, Q46–Q50 sunt confirmate (23.11.2026); Q51 și Q52 sunt
-      amânate către Segmentul 3; Q53 (60 s) rămâne provizorie; Q48 are consemnate măsurătorile
-      numărării paginilor dacă 2B a revenit la „doar la analiză”.
-- [x] Testul care contrazicea Q48 a fost corectat în 2A, iar testele noi (`pdf-page-limit.test.ts`)
-      există (design 11, punctul 0). *(făcut la 23.11.2026)*
-- [ ] `modules/shared-queries/` există, cu excepția ESLint numai pentru acel folder (ADR-0014);
-      `readStudyData` s-a mutat din `auth/repository.ts`, cu testele din `tests/auth/` neschimbate
-      și trecute înainte și după mutare; nicio altă interogare peste tabelele
-      altor module în afara lui și a `repository.ts` al proprietarului.
-- [ ] `createPendingUserFileStore` din `modules/auth/service.ts` a fost șters, iar `app.ts` și
-      `worker.ts` dau serviciului `auth` `documents.userFiles` (design 8, Q43).
-- [ ] În `docs/design/auth-checklist.md`, secțiunea G, obligația Segmentului 2 (Q43) este bifată.
+- [x] `make test` rulează și testele din `backend/tests/documents/` și trece (962 de teste
+      backend). Excluderea a fost eliminată: nu mai există `backend/vitest.documents.config.ts`,
+      scriptul `test:documents`, ținta `test-documents` din Makefile, linia `exclude` din
+      `backend/vitest.config.ts`, iar paragraful „Temporary” din `CLAUDE.md` a fost șters.
+      **Abatere față de lista din 2A:** jobul `documents-spec` din CI a rămas, fără
+      `continue-on-error` și fără script propriu (`npm test -- tests/documents`), la cererea
+      Segmentului 2B: o verificare vizibilă și blocantă a specificației de documente. Șterge-l dacă
+      nu mai este dorit (testele rulează oricum în jobul `backend`).
+- [x] Niciun test din `backend/tests/documents/` din 2A nu a fost modificat, șters, sărit sau
+      slăbit. Testele noi din 2B (în același director, fișiere noi): `docx-and-layout.test.ts`,
+      `pdf-page-counter.test.ts`, `pdf-reader-process.test.ts`. Singurele teste existente care s-au
+      schimbat: `migrations.test.ts` (16 → 17 tabele) și `helpers/db.ts` (fabrica de propoziții).
+- [x] `'documents'` este în `IMPLEMENTED_TAGS` (`tests/api-contract.test.ts`); suita de proprietate
+      (`tests/auth/ownership.test.ts`) acoperă acum rutele de materii și documente.
+- [x] Interfețele din `modules/documents/types.ts` au aceeași formă; semnăturile
+      `createDocumentsService`, `structureText`, `documentsWorkerTasks` sunt neschimbate.
+      `createTextExtractor` primește acum un parametru **opțional** (`{ pdfMemoryMb, maxPages }`),
+      compatibil cu apelurile din teste.
+- [x] Migrarea `0002_sentences_and_subject_name` are inversă scrisă de mână
+      (`drizzle/down/`); `docs/DATA_MODEL.md` este actualizat; `migrations.test.ts` spune 17 și trece.
+- [x] Dependențe noi, justificate în mesajele de commit: `pdfjs-dist` (PDF: pagini și text cu poziții,
+      fără cod executat, fără compilare nativă; cere Node 22.13+, iar `engines` o spune). DOCX se
+      citește fără bibliotecă (`node:zlib`); ZIP-ul exportului la fel.
+- [x] `make lint`, `make check-generated` trec; `docs/openapi.json` nu s-a schimbat în 2B.
+- [x] `docs/OPEN_QUESTIONS.md`: Q12, Q13, Q16, Q17, Q46–Q50 confirmate; Q51 și Q52 amânate către
+      Segmentul 3; Q53 (60 s) confirmată ca valoare configurabilă, de validat în Segmentul 3; Q48 are
+      măsurătorile numărării paginilor și ale citirii PDF.
+- [x] Testul care contrazicea Q48 a fost corectat în 2A (`pdf-page-limit.test.ts`).
+- [x] `modules/shared-queries/` există, cu excepția ESLint numai pentru acel folder
+      (`eslint.config.js`, ADR-0014); `readStudyData` s-a mutat din `auth/repository.ts`, cu
+      `tests/auth/` neschimbat și trecut înainte și după mutare (`tests/shared-queries.test.ts`
+      verifică cu doi studenți). **Rămâne în `auth/repository.ts`:** `listUsers` numără documentele
+      unui utilizator cu SQL brut, o citire peste tabelele documentelor; se mută în
+      `shared-queries` la Segmentul 7 (Q50).
+- [x] `createPendingUserFileStore` a fost șters; `app.ts` dă serviciului `auth`
+      `app.documents.userFiles`, iar `worker.ts` și `admin:create` iau același depozit din serviciul
+      de documente (design 8, Q43). *(`tests/documents/file-store.test.ts`)*
+- [x] În `docs/design/auth-checklist.md`, secțiunea G, obligația Segmentului 2 (Q43) este bifată.
 
 ## B. Încărcarea (2)
 
-- [ ] Ordinea verificărilor este cea din 2.1; formatul și dimensiunea se verifică înainte de
-      salvare. *(testat)*
-- [ ] Tipul declarat de browser nu se folosește; conținutul trebuie să corespundă extensiei. *(testat)*
-- [ ] Limita zilnică este atomică per student și numără și documentele șterse logic. *(testat)*
-- [ ] Limitele se citesc din CONFIGURARE la fiecare cerere. *(testat)*
-- [ ] Un PDF cu prea multe pagini este respins la încărcare, fără extragerea textului. *(testat)*
-- [ ] Un PDF corupt sau protejat este acceptat și decide analiza (M06). *(testat)*
-- [ ] Un PDF la care numărarea atinge timeout-ul sau limita de memorie este respins ca „fișier prea
-      complex” (`FILE_TOO_LARGE`, `exceeded = complexity`). *(testat cu un numărător înlocuit)*
-- [ ] **Numărătorul real** rulează într-un fir separat, cu timeout și limită de memorie din
-      configurare, iar valorile de 5 s și 256 MB au fost măsurate pe PDF-uri reale (design 2.5).
-      Măsurătorile sunt consemnate în Q48.
-- [ ] Un fișier respins nu lasă rând sau fișier pe disc. *(testat)*
+- [x] Ordinea verificărilor este cea din 2.1 (`documents/service.ts`, `uploadDocument`);
+      formatul și dimensiunea se verifică înainte de salvare. *(`upload.test.ts`)*
+- [x] Tipul declarat de browser nu se folosește; conținutul trebuie să corespundă extensiei
+      (`documents/upload.ts`). *(`upload.test.ts`)*
+- [x] Limita zilnică este atomică per student (`lockUploads`, `pg_advisory_xact_lock`) și numără și
+      documentele șterse logic. *(`upload-quota.test.ts`, inclusiv 6 încărcări simultane)*
+- [x] Limitele se citesc din CONFIGURARE la fiecare cerere (`admin/service.ts`, `getSettings`).
+      *(`upload.test.ts`, `upload-quota.test.ts`, `admin-settings.test.ts`)*
+- [x] Un PDF cu prea multe pagini este respins la încărcare, fără extragerea textului.
+      *(`pdf-page-limit.test.ts`)*
+- [x] Un PDF corupt sau protejat este acceptat și decide analiza (M06). *(`pdf-page-limit.test.ts`)*
+- [x] Un PDF la care numărarea atinge timeout-ul sau limita de memorie este respins ca „fișier prea
+      complex” (`FILE_TOO_LARGE`, `exceeded = complexity`). *(`pdf-page-limit.test.ts` cu un
+      numărător înlocuit; `pdf-page-counter.test.ts` cu cel real)*
+- [x] **Numărătorul real** rulează într-un **proces copil** (nu într-un fir: un fir care depășește
+      limita de heap a oprit tot procesul), cu timeout și limită de heap din configurare, iar
+      valorile au fost măsurate pe PDF-uri reale (`documents/pdf-pages.ts`; Q48).
+- [x] Un fișier respins nu lasă rând sau fișier pe disc. *(`upload.test.ts`, `pdf-page-limit.test.ts`)*
 
 ## C. Textul structurat (3)
 
-- [ ] `structureText` este pură: fără acces la fișiere, bază de date sau ceas. *(testat: determinism)*
-- [ ] Invariantele din 3.2 sunt verificate pe fiecare document procesat. *(testat)*
-- [ ] Propozițiile și pasajele se salvează într-o singură tranzacție, împreună cu `page_count`.
-- [ ] Pozițiile sunt în unități UTF-16 și se raportează la textul canonic. *(testat)*
+- [x] `structureText` este pură: fără acces la fișiere, bază de date sau ceas
+      (`documents/structure.ts`). *(`text-structure.test.ts`: determinism)*
+- [x] Invariantele din 3.2 sunt verificate pe fiecare document procesat. *(`helpers/structure.ts`,
+      folosit în `text-structure.test.ts`, `extraction.test.ts`, `processing.test.ts`,
+      `passages.test.ts`)*
+- [x] Propozițiile și pasajele se salvează într-o singură tranzacție, împreună cu `page_count`
+      (`repository.ts`, `storeStructure`). *(`processing.test.ts`: C-08)*
+- [x] Pozițiile sunt în unități UTF-16 și se raportează la textul canonic. *(`passages.test.ts`)*
 - [ ] Pe un curs real al autoarei, propozițiile și pasajele arată rezonabil: verificare manuală,
-      cu 2–3 documente, înainte de Segmentul 3.
+      cu 2–3 documente, înainte de Segmentul 3. *(a autoarei. Statistici pe 4 documente reale,
+      fără a citi conținutul: pasaje de 100–300 de cuvinte, propoziții cu mediana de 64–109
+      caractere, dar cu cel mai lung rând de 467–2256 de caractere: titluri și liste fără punct,
+      deci de privit cu ochii.)*
 
 ## D. Analiza și stările (4)
 
-- [ ] Toate scrierile după revendicare sunt condiționate de `status = 'processing'` și de
-      momentul revendicării. *(testat: C-08, C-10)*
-- [ ] Revendicarea folosește `FOR UPDATE SKIP LOCKED`. *(testat)*
-- [ ] Un document rămas în analiză peste limită devine „Eroare”, chiar dacă procesul a căzut.
-      *(testat)*
-- [ ] Reprocesarea nu extrage din nou textul și păstrează identificatorii pasajelor. *(testat)*
-- [ ] Analiza (Segmentul 3) este primită ca funcție; `documents` nu importă `analysis`.
+- [x] Toate scrierile după revendicare sunt condiționate de `status = 'processing'` și de
+      momentul revendicării (`repository.ts`: `storeStructure`, `finishClaimed`).
+      *(`processing.test.ts`: C-08, C-10)*
+- [x] Revendicarea folosește `FOR UPDATE SKIP LOCKED` (`claimNext`). *(`processing.test.ts`: doi
+      workeri nu iau același document)*
+- [x] Un document rămas în analiză peste limită devine „Eroare”, chiar dacă procesul a căzut
+      (`failStuckDocuments`). *(`processing.test.ts`)*
+- [x] Reprocesarea nu extrage din nou textul și păstrează identificatorii pasajelor.
+      *(`processing.test.ts`)*
+- [x] Analiza (Segmentul 3) este primită ca funcție; `documents` nu importă `analysis`.
+- [x] Stările se schimbă numai prin `state-machine.ts` (`applyUserDocumentEvent`,
+      `nextDocumentStatus`); scrierea este condiționată de starea în care s-a citit rândul.
+      *(`processing.test.ts`, `document-state-machine.test.ts`)*
 
 ## E. Fișiere (6, 8)
 
-- [ ] Calea fișierului este construită numai din identificatori. *(testat)*
-- [ ] Fișierul original se servește cu `nosniff`, `Content-Security-Policy: sandbox`,
-      `Cache-Control: private, no-store`. *(testat)*
-- [ ] Ștergerea contului șterge fișierele (Q43), după `COMMIT`. *(testat)*
-- [ ] Directorul de încărcări nu este servit static și nu este în imaginea Docker; în Compose este
-      un volum.
-- [ ] Copiile de rezervă ale volumului expiră în cel mult 30 de zile (RF20).
+- [x] Calea fișierului este construită numai din identificatori (`documents/files.ts`).
+      *(`file-store.test.ts`)*
+- [x] Fișierul original se servește cu `nosniff`, `Content-Security-Policy: sandbox`,
+      `Cache-Control: private, no-store`. *(`documents.test.ts`)*
+- [x] Ștergerea contului șterge fișierele (Q43), după `COMMIT`. *(`file-store.test.ts`)*
+- [x] Directorul de încărcări nu este servit static (nicio rută îl expune), nu este în imaginea
+      Docker (`.dockerignore`: `storage`) și în Compose este un volum (`uploads`). `.gitignore` îl
+      exclude acum și din `backend/storage/`.
+- [ ] Copiile de rezervă ale volumului expiră în cel mult 30 de zile (RF20): procedură
+      operațională, de verificat la punerea în funcțiune.
+- [ ] **O limită de memorie pe containerul workerului** (`mem_limit` în Compose): memoria din afara
+      heap-ului nu este limitată de `--max-old-space-size` (Q48). Ține de infrastructură și de 2C.
 
 ## F. Jurnalizare și confidențialitate (10)
 
-- [ ] În jurnal nu apar textul documentului, pasajele și numele fișierului. *(testat parțial)*
-- [ ] Nimic din Segmentul 2 nu apelează modelul de limbaj (ADR-0012).
+- [x] În jurnal nu apar textul documentului, pasajele și numele fișierului: erorile se jurnalizează
+      cu identificatorul documentului. *(`file-store.test.ts`, `pdf-page-limit.test.ts`,
+      `processing.test.ts`)*
+- [x] Nimic din Segmentul 2 nu apelează modelul de limbaj (ADR-0012).
 
 ## G. Ce rămâne pentru alte segmente
 
+- [ ] **Segmentul 2C:** sarcinile din `documentsWorkerTasks` sunt înregistrate în `collectTasks()` din
+      `backend/src/worker.ts` (funcția și pașii sunt gata și testați; nu sunt pornite într-un proces);
+      containerul workerului are limită de memorie.
 - [ ] **Segmentul 3:** funcția `analyseDocument` reală; un concept fără pasaj nu respectă RB1:
       decizia între ștergere și marcare inactivă (Q51); ce face analiza reluată cu conceptele
       existente (Q47); **validarea limitei de 60 s pe un document real de 100 de pagini (Q53)**.

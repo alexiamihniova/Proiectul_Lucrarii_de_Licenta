@@ -113,7 +113,7 @@ Dependență nouă: `bcrypt` (ADR-0010). Recenzia finală reverifică fiecare pu
       `llm_calls`, unde `user_id` și `document_id` sunt NULL. *(testat)* La fiecare tabel nou cu
       date de utilizator se verifică `ON DELETE CASCADE` și se adaugă în test.
 - [ ] Fișierele se șterg după `COMMIT`. *(testat cu un înregistrator)*
-- [ ] **Obligația Segmentului 2 (Q43).** Segmentul 2 a furnizat implementarea reală a
+- [x] **Obligația Segmentului 2 (Q43)** *(îndeplinită la 2B, 26.11.2026: `documents/service.ts`, `userFiles`; `tests/documents/file-store.test.ts`)*. Segmentul 2 a furnizat implementarea reală a
       `UserFileStore.deleteAllForUser`, a legat-o în `app.ts` în locul celei implicite (care nu
       face nimic), a adăugat un test care verifică, pe disc, că fișierele unui cont șters dispar
       și are o curățare a fișierelor orfane. Până atunci ștergerea contului NU șterge fișiere.

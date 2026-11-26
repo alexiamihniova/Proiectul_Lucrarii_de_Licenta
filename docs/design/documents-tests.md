@@ -1,29 +1,27 @@
-# Testele materiilor și documentelor (Segmentul 2A)
+# Testele materiilor și documentelor (Segmentele 2A și 2B)
 
-Specificația executabilă a Segmentului 2 este în `backend/tests/documents/`: 11 fișiere, 262 de
-teste. Ele descriu comportarea definită în `docs/design/documents.md`; Segmentul 2B o
-implementează fără să le modifice. Tabelele de mai jos leagă fiecare grup de cazuri de cerința
+Specificația executabilă a Segmentului 2 este în `backend/tests/documents/`: 14 fișiere, 297 de
+teste: 262 scrise în 2A și 35 adăugate în 2B pentru ce specificația atinge doar prin fișiere întregi
+(`docx-and-layout`, `pdf-page-counter`, `pdf-reader-process`). Ele descriu comportarea definită în
+`docs/design/documents.md`; 2B a implementat-o fără să modifice vreun test din 2A. Tabelele de mai jos leagă fiecare grup de cazuri de cerința
 din SRS sau din Dosar.
 
 ## Cum se rulează
 
 ```sh
-make test-documents                 # sau: npm --prefix backend run test:documents
-npm --prefix backend run test:documents -- tests/documents/upload.test.ts
+make test                                              # toate testele, inclusiv cele din tests/documents/
+npm --prefix backend test -- tests/documents/upload.test.ts
 ```
 
-Până la Segmentul 2B testele **pică** (151 pică, 106 sunt sărite fiindcă `beforeAll` nu poate
-crea o materie, 5 trec): rutele răspund `501`. De aceea sunt ținute în afara `make test`
-(`exclude` în `backend/vitest.config.ts`) și rulează în CI într-un job separat, `documents-spec`,
-care nu blochează îmbinarea. Segmentul 2B elimină excluderea; de atunci `make test` le include și
-trebuie să treacă.
+Din Segmentul 2B (26.11.2026) testele trec și fac parte din `make test` și din jobul `backend` din CI. Jobul
+`documents-spec` rulează doar `tests/documents/`, ca verificare de sine stătătoare; nu mai este
+neblocant. Până la 2B ele picau contra rutelor `501` și erau ținute separat.
 
 ## Cum au fost verificate
 
-Testele au fost rulate pe o implementare de probă, scrisă separat și **nepăstrată în repo**
-(`../reference-impl-2a/` lângă repo): toate cele 262 trec pe ea, deci sunt coerente între ele și
-cu designul. Implementarea de probă este comprimată și aproximativă; nu este model pentru 2B.
-Rularea a descoperit patru greșeli de-ale testelor, corectate înainte de commit:
+În 2A, pe o implementare de probă, scrisă separat și păstrată în afara repo-ului; în 2B, pe
+implementarea reală: toate cele 297 trec. Implementarea de probă a descoperit patru greșeli de-ale
+testelor în 2A, corectate înainte de commit:
 
 - un student făcea peste 10 încărcări într-un fișier și lovea limita zilnică (acum limita
   implicită de test este 50, iar setările modificate se șterg la sfârșit, nu se „restaurează”);
@@ -33,6 +31,10 @@ Rularea a descoperit patru greșeli de-ale testelor, corectate înainte de commi
 - baza de date refuză orice modificare a unui rând șters (trigger), deci „îmbătrânirea” unui
   document șters în test cere oprirea triggerului pe durata unei instrucțiuni
   (`backdateDeletedDocument`).
+
+În 2B, rularea pe implementarea reală a trecut din prima; singurele erori de test găsite au fost în
+testele noi de 2B (geometrie în `docx-and-layout`, momentul în care se construiește „bomba” în
+`pdf-reader-process`).
 
 ## Ajutoare
 
@@ -109,6 +111,16 @@ Rularea a descoperit patru greșeli de-ale testelor, corectate înainte de commi
 | Fișierul original: tip, octeți, antete de siguranță, nume                              | RF5                |
 | Cele patru sarcini ale workerului                                                      | design 9           |
 
+### `docx-and-layout.test.ts` (17), `pdf-page-counter.test.ts` (9), `pdf-reader-process.test.ts` (9)
+
+| Caz                                                                                   | Cerință            |
+| ------------------------------------------------------------------------------------- | ------------------ |
+| DOCX împachetat cum îl scrie Word (intrări comprimate), tabele, tab-uri, entități      | RF4, design 3.7    |
+| Limita de despachetare a DOCX; arhive cu directorul central stricat                    | design 3.7         |
+| Așezarea textului unui PDF: rânduri, paragrafe, două coloane, titlu peste coloane       | RF4, design 3.7    |
+| Numărătorul real: pagini, `unreadable`, `timeout`, `memory` fără oprirea aplicației, cel mult 4 simultan | Q48 |
+| Citirea PDF într-un proces copil: oprire prin semnal, bombă de conținut care nu blochează bucla de evenimente, depășire de heap | Q48, design 3.7 |
+
 ### `file-store.test.ts` (21)
 
 | Caz                                                                                   | Cerință            |
@@ -126,8 +138,9 @@ Rularea a descoperit patru greșeli de-ale testelor, corectate înainte de commi
   PDF-uri minimale, cu text ASCII; ordinea de citire pe pagini cu mai multe coloane nu e verificată.
 - **Calitatea împărțirii în propoziții pe text real.** Regulile din 3.4 sunt verificate pe cazuri
   alese; precizia pe un curs real se judecă la 2B, pe documente reale ale autoarei.
-- **Timeout-ul și limita de memorie reale ale numărării paginilor** (Q48): numărătorul este un
-  port, iar testele îl înlocuiesc; măsurarea pe PDF-uri reale este a lui 2B (design 2.5).
+- **Măsurătorile din Q48** (timpi și memorie pe PDF-uri reale) nu sunt teste: variază cu mașina.
+  Testele verifică mecanismul (timeout, memorie, oprire), nu valorile.
+- **Memoria din afara heap-ului** a procesului copil nu este limitată și nu este testată (Q48).
 - **Oprirea efectivă a unei extrageri în curs** la depășirea timpului: se verifică semnalul și
   starea finală, nu că firul de execuție s-a oprit.
 - **Eșecul scrierii pe disc** (disc plin, permisiuni) nu este simulat.
