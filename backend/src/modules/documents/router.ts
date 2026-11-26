@@ -1,13 +1,10 @@
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
+import type { FastifyRequest } from 'fastify';
 import { z } from 'zod';
+import type { UserActor } from '../../core/actor.js';
+import { AppError } from '../../core/errors.js';
 import { Passage } from '../../core/api-schemas.js';
-import {
-  NoContent,
-  PaginationQuery,
-  endpoint,
-  notImplemented,
-  paginated,
-} from '../../core/http.js';
+import { NoContent, PaginationQuery, endpoint, paginated } from '../../core/http.js';
 import {
   Document,
   DocumentList,
@@ -23,6 +20,22 @@ import {
 } from './schemas.js';
 
 const tag = 'documents';
+
+/** The hook sets the actor on every route that is not public; this only narrows the type. */
+function requireActor(request: FastifyRequest): UserActor {
+  if (!request.actor) throw new AppError('UNAUTHENTICATED');
+  return request.actor;
+}
+
+const missingFile = (message: string) =>
+  new AppError('VALIDATION_ERROR', [{ path: 'body/file', message }]);
+
+/** RFC 5987 `attr-char`: what `encodeURIComponent` leaves is not enough (' ( ) * stay). */
+const encodeRfc5987 = (value: string) =>
+  encodeURIComponent(value).replace(
+    /['()*]/g,
+    (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`,
+  );
 const PassageList = paginated(Passage, 'PassageList');
 
 /** Segment 2 — UC-04 „Gestionează materiile și documentele” (RF3–RF6). */
@@ -42,7 +55,11 @@ export const documentsRouter: FastifyPluginAsyncZod = async (app) => {
       },
       { querystring: PaginationQuery, response: { 200: SubjectList } },
     ),
-    handler: notImplemented,
+    handler: async (request) => {
+      const { page, page_size: pageSize } = request.query;
+      const result = await app.documents.listSubjects(requireActor(request), { page, pageSize });
+      return { ...result, page, page_size: pageSize };
+    },
   });
 
   app.route({
@@ -60,7 +77,8 @@ export const documentsRouter: FastifyPluginAsyncZod = async (app) => {
       },
       { body: SubjectWrite, response: { 201: Subject } },
     ),
-    handler: notImplemented,
+    handler: async (request, reply) =>
+      reply.code(201).send(await app.documents.createSubject(requireActor(request), request.body)),
   });
 
   app.route({
@@ -77,7 +95,8 @@ export const documentsRouter: FastifyPluginAsyncZod = async (app) => {
       },
       { params: SubjectParams, response: { 200: Subject } },
     ),
-    handler: notImplemented,
+    handler: async (request) =>
+      app.documents.getSubject(requireActor(request), request.params.subject_id),
   });
 
   app.route({
@@ -94,7 +113,8 @@ export const documentsRouter: FastifyPluginAsyncZod = async (app) => {
       },
       { params: SubjectParams, body: SubjectWrite, response: { 200: Subject } },
     ),
-    handler: notImplemented,
+    handler: async (request) =>
+      app.documents.renameSubject(requireActor(request), request.params.subject_id, request.body),
   });
 
   app.route({
@@ -113,7 +133,10 @@ export const documentsRouter: FastifyPluginAsyncZod = async (app) => {
       },
       { params: SubjectParams, response: { 204: NoContent } },
     ),
-    handler: notImplemented,
+    handler: async (request, reply) => {
+      await app.documents.deleteSubject(requireActor(request), request.params.subject_id);
+      return reply.code(204).send();
+    },
   });
 
   // --- documents --------------------------------------------------------------------------
@@ -134,7 +157,30 @@ export const documentsRouter: FastifyPluginAsyncZod = async (app) => {
       },
       { params: SubjectParams, response: { 201: Document } },
     ),
-    handler: notImplemented,
+    handler: async (request, reply) => {
+      if (!request.isMultipart())
+        throw missingFile('multipart/form-data with a file part is required');
+      const part = await request.file();
+      if (!part || part.fieldname !== 'file' || !part.filename) {
+        throw missingFile('the file part is missing');
+      }
+      let content: Buffer = Buffer.alloc(0);
+      let truncated: boolean;
+      try {
+        content = await part.toBuffer();
+        truncated = part.file.truncated;
+      } catch (error) {
+        // The transport stopped the file at UPLOAD_HARD_LIMIT_MB: it is simply too large.
+        if ((error as { code?: string }).code !== 'FST_REQ_FILE_TOO_LARGE') throw error;
+        truncated = true;
+      }
+      const document = await app.documents.uploadDocument(
+        requireActor(request),
+        request.params.subject_id,
+        { fileName: part.filename, content, truncated },
+      );
+      return reply.code(201).send(document);
+    },
   });
 
   app.route({
@@ -151,7 +197,16 @@ export const documentsRouter: FastifyPluginAsyncZod = async (app) => {
       },
       { querystring: DocumentListQuery, response: { 200: DocumentList } },
     ),
-    handler: notImplemented,
+    handler: async (request) => {
+      const { page, page_size: pageSize, subject_id: subjectId, status } = request.query;
+      const result = await app.documents.listDocuments(requireActor(request), {
+        page,
+        pageSize,
+        ...(subjectId !== undefined ? { subjectId } : {}),
+        ...(status !== undefined ? { status } : {}),
+      });
+      return { ...result, page, page_size: pageSize };
+    },
   });
 
   app.route({
@@ -168,7 +223,7 @@ export const documentsRouter: FastifyPluginAsyncZod = async (app) => {
       },
       { response: { 200: UploadQuota } },
     ),
-    handler: notImplemented,
+    handler: async (request) => app.documents.getUploadQuota(requireActor(request)),
   });
 
   app.route({
@@ -187,7 +242,11 @@ export const documentsRouter: FastifyPluginAsyncZod = async (app) => {
       },
       { params: DocumentParams, response: { 200: Document } },
     ),
-    handler: notImplemented,
+    handler: async (request, reply) => {
+      // The interface polls this route (C-02, Q13): an old answer must never be reused.
+      reply.header('cache-control', 'no-store');
+      return app.documents.getDocument(requireActor(request), request.params.document_id);
+    },
   });
 
   app.route({
@@ -205,7 +264,10 @@ export const documentsRouter: FastifyPluginAsyncZod = async (app) => {
       },
       { params: DocumentParams, body: DocumentRename, response: { 200: Document } },
     ),
-    handler: notImplemented,
+    handler: async (request) =>
+      app.documents.renameDocument(requireActor(request), request.params.document_id, {
+        fileName: request.body.file_name,
+      }),
   });
 
   app.route({
@@ -224,7 +286,10 @@ export const documentsRouter: FastifyPluginAsyncZod = async (app) => {
       },
       { params: DocumentParams, response: { 204: NoContent } },
     ),
-    handler: notImplemented,
+    handler: async (request, reply) => {
+      await app.documents.deleteDocument(requireActor(request), request.params.document_id);
+      return reply.code(204).send();
+    },
   });
 
   app.route({
@@ -243,7 +308,12 @@ export const documentsRouter: FastifyPluginAsyncZod = async (app) => {
       },
       { params: DocumentParams, response: { 202: Document } },
     ),
-    handler: notImplemented,
+    handler: async (request, reply) =>
+      reply
+        .code(202)
+        .send(
+          await app.documents.reprocessDocument(requireActor(request), request.params.document_id),
+        ),
   });
 
   app.route({
@@ -271,7 +341,23 @@ export const documentsRouter: FastifyPluginAsyncZod = async (app) => {
         },
       },
     ),
-    handler: notImplemented,
+    handler: async (request, reply) => {
+      const file = await app.documents.openDocumentFile(
+        requireActor(request),
+        request.params.document_id,
+      );
+      return (
+        reply
+          .header('content-type', file.contentType)
+          .header('content-length', file.sizeBytes)
+          .header('content-disposition', `inline; filename*=UTF-8''${encodeRfc5987(file.fileName)}`)
+          // A stored file is shown, never run: no guessing of its type, no scripts, no caching.
+          .header('x-content-type-options', 'nosniff')
+          .header('content-security-policy', 'sandbox')
+          .header('cache-control', 'private, no-store')
+          .send(file.stream as never)
+      );
+    },
   });
 
   app.route({
@@ -289,6 +375,14 @@ export const documentsRouter: FastifyPluginAsyncZod = async (app) => {
       },
       { params: DocumentParams, querystring: PassageListQuery, response: { 200: PassageList } },
     ),
-    handler: notImplemented,
+    handler: async (request) => {
+      const { page, page_size: pageSize, page_number: pageNumber } = request.query;
+      const result = await app.documents.listPassages(
+        requireActor(request),
+        request.params.document_id,
+        { page, pageSize, ...(pageNumber !== undefined ? { pageNumber } : {}) },
+      );
+      return { ...result, page, page_size: pageSize };
+    },
   });
 };
