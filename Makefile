@@ -20,7 +20,7 @@ endif
 
 .DEFAULT_GOAL := help
 .PHONY: help install env up down logs ps dev dev-backend dev-worker dev-frontend db-create \
-        migrate migrate-down migrate-status seed admin test test-backend test-frontend lint format \
+        migrate migrate-down migrate-status seed admin verify-worker test test-backend test-frontend lint format \
         typecheck openapi check-generated
 
 help: ## Show this help
@@ -86,6 +86,9 @@ seed: .env ## Insert the default settings that are missing (idempotent)
 admin: .env ## Create an administrator account: make admin EMAIL=admin@example.com (asks for the password)
 	@test -n "$(EMAIL)" || (echo "usage: make admin EMAIL=admin@example.com" && exit 2)
 	$(BACKEND) run admin:create -- --email "$(EMAIL)"
+
+verify-worker: ## Check on the running stack (make up) that a TXT, a DOCX and a PDF go from queued to ready
+	$(COMPOSE) exec -T backend npx tsx tests/e2e/verify-worker.ts
 
 # --- Quality --------------------------------------------------------------------------------
 
