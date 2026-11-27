@@ -67,7 +67,7 @@ dacă decizia schimbă schema sau contractul, segmentul respectiv face migrarea 
 | Q51 | Conceptele rămase fără pasaje după ștergerea unui document | 2, 3 | Amânată (3) |
 | Q52 | Analiza înainte de Segmentul 3: documentul devine „Gata” fără concepte | 2, 3 | Amânată (3) |
 | Q53 | Limita de 60 s pentru analiză: valoare provizorie | 2, 3 | Confirmată (provizorie) |
-| Q54 | Rularea cozii în procesul worker (Segmentul 2C) | 2 | Deschisă |
+| Q54 | Rularea cozii în procesul worker (Segmentul 2C) | 2 | Confirmată |
 
 ---
 
@@ -686,25 +686,38 @@ dacă decizia schimbă schema sau contractul, segmentul respectiv face migrarea 
 
 ### Q54. Rularea cozii în procesul worker (Segmentul 2C)
 
-- **Ce este gata.** `processNextDocument`, `failStuckDocuments`, `purgeDeletedDocuments`,
-  `removeOrphanFiles` și `documentsWorkerTasks` sunt scrise și testate ca funcții (2B); analiza
-  este funcția primită de modul (Q52).
-- **Ce nu s-a făcut, intenționat.** Înregistrarea sarcinilor în `collectTasks()` din
-  `backend/src/worker.ts`: fără ea, un document încărcat rămâne „În coadă”. Este 2C.
-- **Decizie (26.11.2026).** 2B nu pornește procesarea; 2C înregistrează `processNextDocument`,
-  `failStuckDocuments` și `documentsWorkerTasks` în `worker.ts`. **Jobul `documents-spec` din CI se
-  șterge în primul commit al lui 2C**, fiindcă testele rulează oricum în jobul `backend`.
-- **Node.** Imaginile Docker (`node:24-alpine`), CI (`node-version: 24`) și `.nvmrc` (24) au același
-  major, iar `engines` cere 22.13 sau mai mult (cerința lui `pdfjs-dist`); minorul nu este fixat în
-  niciuna. **Neverificat:** CI testează procesul copil pentru PDF doar pe Ubuntu (glibc); imaginea
-  Alpine (musl) este pornită de jobul Compose, dar nu numără pagini. De adăugat la 2C un pas în
-  jobul Compose care numără paginile unui PDF mic în imagine.
-- **De hotărât la 2C.** (1) Limita de memorie a containerului workerului: memoria din afara
-  heap-ului nu este limitată de procesele copil (Q48). (2) Dacă `analyseDocument` rulează în același
-  proces cu extragerea; Segmentul 3 o furnizează. (3) Câte documente în paralel (acum unul, în
-  serie).
-- **Acum.** `make dev` pornește workerul, dar documentele nu avansează.
+- **Decizie (27.11.2026).** Închisă în Segmentul 2C. Valorile alese, cu sursa lor:
 
+  | Ce | Valoare | Sursă |
+  | -- | ------- | ----- |
+  | Documente procesate în paralel | 1 (sarcina `process-queue` nu se suprapune cu ea însăși; PDF-urile se citesc în proces copil) | propunere, acceptată |
+  | Cât de des se uită workerul la coadă | `WORKER_POLL_INTERVAL_MS`, implicit 1000 ms; **workerul refuză să pornească peste 3000** | Q13, C-02 (SRS: starea în 5 s) |
+  | Limita de memorie a containerului workerului | `mem_limit: 768m` (peste cei 512 MB ai `PDF_EXTRACT_MEMORY_MB`) | propunere, acceptată |
+  | Perioada de grație la oprire | `stop_grace_period` 75 s (`WORKER_STOP_GRACE_PERIOD`); **trebuie să fie > `DOCUMENT_PROCESSING_TIMEOUT_SECONDS` (60 s) + un rest (15 s)** | derivată din Q53; restul de 15 s este propunerea mea |
+  | `PDF_PAGE_COUNT_MEMORY_MB` | 256, neschimbat | Q48 |
+  | Limita de timp a analizei | 60 s, neschimbată | Q53 |
+
+- **Ce s-a făcut.** `documentsWorkerTasks` este înregistrată în `backend/src/worker.ts`, cu un singur
+  serviciu de documente pentru tot procesul. Fără `analyseDocument` până la Segmentul 3: documentul
+  devine „Gata” cu text și pasaje, fără concepte (Q51, Q52); workerul o spune în jurnal la pornire.
+  Jobul `documents-spec` a fost șters din CI.
+- **Oprirea.** La SIGTERM workerul nu mai ia documente noi și lasă documentul din lucru să se
+  termine; sarcina nu primește semnalul de oprire ca să-l dea analizei, fiindcă ar ucide în câteva
+  secunde procesul copil care citește PDF-ul (testat: dacă semnalul s-ar da, documentul ar ajunge
+  „Eroare”). Un worker ucis totuși lasă documentul „În analiză”, iar `failStuckDocuments` îl trece în
+  „Eroare” cu `DOCUMENT_PROCESSING_TIMEOUT` la pornirea următoare.
+- **Verificat.** Teste cu runtime-ul real al workerului (`worker-integration.test.ts`): TXT, DOCX și
+  PDF din „În coadă” în „Gata” în sub 5 s; un document odată; ștergere în timpul analizei (C-08);
+  timeout și rezultat tardiv (C-10); document rămas în „În analiză” la pornire; oprire cu document în
+  lucru. În CI, jobul Compose verifică limitele cu `docker inspect`, rulează `make verify-worker`
+  (inclusiv numărarea paginilor pe Alpine) și oprește workerul: cod de ieșire 0 în perioada de grație.
+- **Node.** Imaginile Docker, CI și `.nvmrc` au același major (24); pasul din Compose numără acum
+  paginile unui PDF în imaginea Alpine, ceea ce lipsea.
+- **Rămâne deschis.** (1) Oprirea cu un document în lucru NU este verificată în Compose (în CI nu
+  rămâne niciun document în lucru când se oprește workerul), ci doar cu runtime-ul real în teste.
+  (2) Memoria din afara heap-ului este limitată doar de containerul workerului; un fișier ostil real
+  nu a fost încercat pe containerul limitat. (3) Mai mulți workeri în paralel sunt permiși de
+  `FOR UPDATE SKIP LOCKED`, dar nu s-a verificat în Compose.
 ---
 
 ## Confirmate (istoric)

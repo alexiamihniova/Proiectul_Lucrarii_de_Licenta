@@ -15,8 +15,8 @@ Referințe: `docs/design/documents.md` (secțiunile din paranteze), ADR-0003, AD
       `backend/vitest.config.ts`, iar paragraful „Temporary” din `CLAUDE.md` a fost șters.
       **Abatere față de lista din 2A:** jobul `documents-spec` din CI a rămas, fără
       `continue-on-error` și fără script propriu (`npm test -- tests/documents`), la cererea
-      Segmentului 2B: o verificare vizibilă și blocantă a specificației de documente. Șterge-l dacă
-      nu mai este dorit (testele rulează oricum în jobul `backend`).
+      Segmentului 2B: o verificare vizibilă și blocantă a specificației de documente. Jobul a fost
+      șters în Segmentul 2C (testele rulează oricum în jobul `backend`).
 - [x] Niciun test din `backend/tests/documents/` din 2A nu a fost modificat, șters, sărit sau
       slăbit. Testele noi din 2B (în același director, fișiere noi): `docx-and-layout.test.ts`,
       `pdf-page-counter.test.ts`, `pdf-reader-process.test.ts`. Singurele teste existente care s-au
@@ -116,7 +116,7 @@ Referințe: `docs/design/documents.md` (secțiunile din paranteze), ADR-0003, AD
       exclude acum și din `backend/storage/`.
 - [ ] Copiile de rezervă ale volumului expiră în cel mult 30 de zile (RF20): procedură
       operațională, de verificat la punerea în funcțiune.
-- [ ] **O limită de memorie pe containerul workerului** (`mem_limit` în Compose): memoria din afara
+- [x] **O limită de memorie pe containerul workerului** (`mem_limit: 768m` în Compose; verificată în CI cu `docker inspect`): memoria din afara
       heap-ului nu este limitată de `--max-old-space-size` (Q48). Ține de infrastructură și de 2C.
 
 ## F. Jurnalizare și confidențialitate (10)
@@ -130,10 +130,10 @@ Referințe: `docs/design/documents.md` (secțiunile din paranteze), ADR-0003, AD
 
 - [x] **Segmentul 2C, primul commit** *(făcut la 27.11.2026)*: s-a șters jobul `documents-spec` din `.github/workflows/ci.yml`
       (redundant cu jobul `backend`).
-- [ ] **Segmentul 2C:** un pas în jobul Compose numără paginile unui PDF mic în imaginea Alpine.
-- [ ] **Segmentul 2C:** sarcinile din `documentsWorkerTasks` sunt înregistrate în `collectTasks()` din
-      `backend/src/worker.ts` (funcția și pașii sunt gata și testați; nu sunt pornite într-un proces);
-      containerul workerului are limită de memorie.
+- [x] **Segmentul 2C:** jobul Compose numără paginile unui PDF în imaginea Alpine și duce un TXT, un DOCX și un PDF din „În coadă” în „Gata” (`backend/tests/e2e/verify-worker.ts`, `make verify-worker`). *(CI, 27.11.2026)*
+- [x] **Segmentul 2C:** sarcinile din `documentsWorkerTasks` sunt înregistrate în `collectTasks()` din
+      `backend/src/worker.ts`; documentele trec singure din „În coadă” în „Gata” în aplicația pornită.
+      *(`tests/documents/worker-integration.test.ts`, `tests/worker-startup.test.ts`, CI Compose)*
 - [ ] **Segmentul 3:** funcția `analyseDocument` reală; un concept fără pasaj nu respectă RB1:
       decizia între ștergere și marcare inactivă (Q51); ce face analiza reluată cu conceptele
       existente (Q47); **validarea limitei de 60 s pe un document real de 100 de pagini (Q53)**.
