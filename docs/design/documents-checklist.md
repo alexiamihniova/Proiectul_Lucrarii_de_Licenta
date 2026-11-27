@@ -128,7 +128,7 @@ Referințe: `docs/design/documents.md` (secțiunile din paranteze), ADR-0003, AD
 
 ## G. Ce rămâne pentru alte segmente
 
-- [ ] **Segmentul 2C, primul commit:** se șterge jobul `documents-spec` din `.github/workflows/ci.yml`
+- [x] **Segmentul 2C, primul commit** *(făcut la 27.11.2026)*: s-a șters jobul `documents-spec` din `.github/workflows/ci.yml`
       (redundant cu jobul `backend`).
 - [ ] **Segmentul 2C:** un pas în jobul Compose numără paginile unui PDF mic în imaginea Alpine.
 - [ ] **Segmentul 2C:** sarcinile din `documentsWorkerTasks` sunt înregistrate în `collectTasks()` din

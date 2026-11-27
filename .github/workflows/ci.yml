@@ -64,40 +64,6 @@ jobs:
           git diff --exit-code -- drizzle
           test -z "$(git status --porcelain -- drizzle)"
 
-  # The subjects and documents specification (backend/tests/documents/) also runs in the `backend`
-  # job above; this job keeps it visible as a check of its own. It blocks merging.
-  documents-spec:
-    name: Documents specification
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_USER: recap
-          POSTGRES_PASSWORD: recap
-          POSTGRES_DB: recap_test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U recap -d recap_test"
-          --health-interval 3s --health-timeout 3s --health-retries 20
-    env:
-      NODE_ENV: test
-      TEST_DATABASE_URL: postgres://recap:recap@localhost:5432/recap_test
-    defaults:
-      run:
-        working-directory: backend
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: npm
-          cache-dependency-path: backend/package-lock.json
-      - run: npm ci
-      - name: Documents specification
-        run: npm test -- tests/documents
-
   frontend:
     name: Frontend (lint, tests, build)
     runs-on: ubuntu-latest

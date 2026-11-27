@@ -15,8 +15,7 @@ npm --prefix backend test -- tests/documents/upload.test.ts
 ```
 
 Din Segmentul 2B (26.11.2026) testele trec și fac parte din `make test` și din jobul `backend` din CI. Jobul
-`documents-spec` rulează doar `tests/documents/`, ca verificare de sine stătătoare; nu mai este
-neblocant. Până la 2B ele picau contra rutelor `501` și erau ținute separat.
+`documents-spec` a existat până la Segmentul 2C, când a fost șters ca redundant: testele rulează în jobul `backend`. Până la 2B ele picau contra rutelor `501` și erau ținute separat.
 
 ## Cum au fost verificate
 
