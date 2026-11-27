@@ -1,3 +1,5 @@
+import { ConfigError } from './config.js';
+
 /**
  * Background work runtime (ADR-0003). `src/worker.ts` is a separate process from the HTTP
  * server; it runs a list of tasks, each on its own interval. A task is a plain async function
@@ -10,6 +12,27 @@
  *
  * The runtime knows nothing about what tasks do.
  */
+
+/**
+ * The longest a worker may wait between two looks at the queue (Q13, C-02): the state of a document
+ * must show in the interface within 5 s, and the interface polls every 3 s, so a worker that looks
+ * less often than that would make the 5 s impossible.
+ */
+export const MAX_POLL_INTERVAL_MS = 3000;
+
+/**
+ * Refuses, at start-up, a poll interval above `MAX_POLL_INTERVAL_MS`. It does not shorten the value
+ * quietly: whoever set it must know it was wrong.
+ */
+export function assertPollInterval(pollIntervalMs: number): void {
+  if (pollIntervalMs > MAX_POLL_INTERVAL_MS) {
+    throw new ConfigError([
+      `WORKER_POLL_INTERVAL_MS=${pollIntervalMs} is above ${MAX_POLL_INTERVAL_MS} ms: a document ` +
+        `would wait that long before its analysis even starts, and its state would not reach the ` +
+        `interface within 5 s (Q13, C-02). Set it to ${MAX_POLL_INTERVAL_MS} or less.`,
+    ]);
+  }
+}
 
 export interface WorkerTask {
   name: string;
