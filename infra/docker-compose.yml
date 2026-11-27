@@ -57,6 +57,17 @@ services:
   worker:
     <<: *backend
     command: npm run dev:worker
+    # Memory (Segment 2C, Q54). The worker reads untrusted PDF files in a child process whose HEAP is
+    # limited to PDF_EXTRACT_MEMORY_MB (512), but what a hostile file makes it allocate outside the
+    # heap is not limited by that. This is the net: 768 MB, above the 512 MB of the child, so that
+    # a hostile file costs the child (the kernel kills the biggest process), not the host.
+    mem_limit: 768m
+    # Stopping (Segment 2C). On SIGTERM the worker takes no new document and lets the one in hand
+    # finish, which DOCUMENT_PROCESSING_TIMEOUT_SECONDS (60) bounds. THE RULE:
+    #     stop_grace_period  >  DOCUMENT_PROCESSING_TIMEOUT_SECONDS + a margin    (75 s > 60 s + 15 s)
+    # If the grace period were shorter, Docker would kill the worker with a document half read and
+    # that document would end as an error. If you raise the time limit, raise this too.
+    stop_grace_period: ${WORKER_STOP_GRACE_PERIOD:-75s}
     depends_on:
       backend:
         condition: service_healthy

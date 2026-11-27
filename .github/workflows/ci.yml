@@ -108,6 +108,24 @@ jobs:
             exec -T db psql -U recap -d recap -Atc \
             "select count(*) from information_schema.tables where table_schema = 'public' and table_name <> 'schema_migrations'")
           test "$count" = "17"
+      - name: The worker has its memory limit and its grace period for stopping
+        run: |
+          id=$(docker compose --project-directory . --env-file .env -f infra/docker-compose.yml ps -q worker)
+          echo "memory limit: $(docker inspect -f '{{.HostConfig.Memory}}' "$id") bytes; stop timeout: $(docker inspect -f '{{.Config.StopTimeout}}' "$id") s"
+          test "$(docker inspect -f '{{.HostConfig.Memory}}' "$id")" = "805306368"
+          test "$(docker inspect -f '{{.Config.StopTimeout}}' "$id")" = "75"
+      - name: A TXT, a DOCX and a PDF go from queued to ready in the worker, and the page counter works on Alpine
+        run: make verify-worker
+      - name: The worker stops cleanly, within its grace period
+        run: |
+          compose="docker compose --project-directory . --env-file .env -f infra/docker-compose.yml"
+          id=$($compose ps -q worker)
+          start=$(date +%s)
+          $compose stop worker
+          echo "stopped in $(( $(date +%s) - start )) s, exit code $(docker inspect -f '{{.State.ExitCode}}' "$id")"
+          test "$(docker inspect -f '{{.State.ExitCode}}' "$id")" = "0"
+          test "$(( $(date +%s) - start ))" -lt 75
+          $compose logs worker | grep -q '"msg":"worker stopped"'
       - name: Logs on failure
         if: failure()
         run: docker compose --project-directory . --env-file .env -f infra/docker-compose.yml logs

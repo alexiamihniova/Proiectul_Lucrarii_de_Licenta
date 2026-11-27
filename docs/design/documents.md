@@ -458,10 +458,29 @@ tranzițiile PR și PE le face `processNextDocument`, după rezultatul portului 
 
 | Nume                            | Interval | Ce face                                              |
 | ------------------------------- | -------- | ---------------------------------------------------- |
-| `documents:process-queue`       | 1 s      | `processNextDocument` până când coada este goală      |
+| `documents:process-queue`       | `WORKER_POLL_INTERVAL_MS` (1 s; cel mult 3 s) | `processNextDocument` până când coada este goală, un document odată |
 | `documents:fail-stuck`          | 10 s     | `failStuckDocuments` (4.3)                            |
 | `documents:purge-deleted`       | 1 h      | `purgeDeletedDocuments` (secțiunea 5)                 |
 | `documents:remove-orphan-files` | 24 h     | `removeOrphanFiles` (secțiunea 8)                     |
+
+**Pornire și oprire (Segmentul 2C, 27.11.2026).**
+
+- Sarcinile sunt înregistrate în `src/worker.ts`, cu un singur serviciu de documente pentru tot
+  procesul. Workerul **refuză să pornească** dacă `WORKER_POLL_INTERVAL_MS` depășește 3000 (Q13, C-02),
+  cu un mesaj care numește variabila; nu taie valoarea pe tăcute.
+- Un document odată: sarcina `process-queue` nu se suprapune cu ea însăși, iar PDF-urile se citesc în
+  proces copil (3.7).
+- **La oprire** (SIGTERM) workerul nu mai ia documente noi și **lasă documentul din lucru să se
+  termine**: sarcina nu primește semnalul de oprire ca să-l dea mai departe analizei, fiindcă ar ucide
+  procesul copil care citește PDF-ul în câteva secunde și documentul ar ajunge „Eroare” fără vină.
+  Documentul este limitat de `DOCUMENT_PROCESSING_TIMEOUT_SECONDS`, deci oprirea așteaptă cel mult
+  atât. **Regula:** `stop_grace_period` al containerului > `DOCUMENT_PROCESSING_TIMEOUT_SECONDS` + un
+  rest (implicit 75 s > 60 s + 15 s; `WORKER_STOP_GRACE_PERIOD`).
+- Un worker ucis totuși (SIGKILL, cădere) lasă documentul „În analiză”; `failStuckDocuments` îl trece
+  în „Eroare” cu `DOCUMENT_PROCESSING_TIMEOUT` la pornirea următoare, imediat dacă a trecut limita.
+- Containerul workerului are `mem_limit: 768m`, peste cei 512 MB de heap ai procesului copil (Q48).
+- Până la Segmentul 3 analiza nu face nimic: documentul devine „Gata” cu text și pasaje, fără concepte
+  (Q52); workerul spune asta în jurnal la pornire.
 
 ## 10. Securitate și jurnalizare
 

@@ -5,14 +5,15 @@ licență, UTM). Studentul încarcă documente de curs (PDF, DOCX, TXT); un sing
 apelat doar de pe server, extrage concepte și generează materiale și teste cu sursă verificată;
 aplicația calculează stăpânirea pe concept și programează recapitularea cu SM-2.
 
-**Starea curentă: Segmentele 0 (fundația), 1 (conturi și acces) și 2 (materii și documente, fără
-coada din procesul worker: Segmentul 2C).** Există schema bazei de date,
+**Starea curentă: Segmentele 0 (fundația), 1 (conturi și acces) și 2 (materii, documente și coada
+de procesare din worker; Segmentele 2A–2C).** Există schema bazei de date,
 contractele API pentru toate cazurile de utilizare, configurarea, interfața către modelul de
 limbaj, infrastructura de dezvoltare și conturile: înregistrare, autentificare, sesiune,
 resetarea parolei, preferințe, export și ștergerea contului, apoi materii, încărcarea documentelor
 (PDF, DOCX, TXT), extragerea textului în propoziții și pasaje, starea documentelor și fișierele.
-Un document încărcat rămâne „În coadă” până când Segmentul 2C pornește coada în worker. Celelalte
-rute cer o sesiune și răspund `501` până la implementare, în Segmentele 3–8.
+Un document încărcat trece singur din „În coadă” în „Gata” (workerul îl citește și îl împarte în
+propoziții și pasaje), dar **fără concepte**: extragerea lor este Segmentul 3. Celelalte rute cer o
+sesiune și răspund `501` până la implementare, în Segmentele 3–8.
 
 ## Documentație
 
@@ -113,6 +114,7 @@ Până la Segmentul 8 nu se trimit e-mailuri: în dezvoltare, legătura de reset
 | `make migrate`         | Aplică migrările în așteptare                                                 |
 | `make migrate-down`    | Anulează ultima migrare                                                       |
 | `make migrate-status`  | Arată migrările și dacă sunt aplicate                                         |
+| `make verify-worker`   | Pe stiva pornită (`make up`): un TXT, un DOCX și un PDF generate de script trec din „În coadă” în „Gata” |
 | `make seed`            | Scrie setările implicite care lipsesc                                         |
 | `make admin EMAIL=…`   | Creează un cont de administrator; parola se cere interactiv                   |
 | `make test`            | Testele backend (au nevoie de `TEST_DATABASE_URL`) și frontend                |
@@ -123,6 +125,22 @@ Până la Segmentul 8 nu se trimit e-mailuri: în dezvoltare, legătura de reset
 
 Testele backend **șterg și recreează toate tabelele** din baza indicată de `TEST_DATABASE_URL`.
 Suita refuză să pornească dacă numele bazei nu conține „test”.
+
+### Oprirea workerului
+
+`docker compose stop worker` (sau `make down`) trimite SIGTERM. Workerul nu mai ia documente noi și
+**lasă să se termine documentul din lucru**, pe care îl limitează `DOCUMENT_PROCESSING_TIMEOUT_SECONDS`
+(60 s). De aceea perioada de grație a containerului trebuie să fie mai mare decât limita plus un rest:
+
+> `stop_grace_period` > `DOCUMENT_PROCESSING_TIMEOUT_SECONDS` + rest  (implicit: 75 s > 60 s + 15 s)
+
+Se schimbă cu `WORKER_STOP_GRACE_PERIOD` din `.env` (citit de `infra/docker-compose.yml`). Dacă ridici
+limita de timp, ridică și perioada de grație; altfel Docker ucide workerul cu un document pe jumătate
+citit, iar documentul ajunge „Eroare”. Un worker ucis totuși lasă documentul „În analiză”, iar
+`failStuckDocuments` îl trece în „Eroare” când pornește următorul. Workerul are și o limită de
+memorie, `mem_limit: 768m`, peste cei 512 MB ai procesului care citește PDF-uri (`PDF_EXTRACT_MEMORY_MB`).
+La pornire, workerul **refuză** un `WORKER_POLL_INTERVAL_MS` peste 3000 (starea unui document trebuie să
+ajungă în interfață în 5 s).
 
 ## Configurare
 
@@ -173,4 +191,6 @@ marcate pentru acel segment.
 - **backend**: lint, verificare de tipuri, migrările pe un PostgreSQL 16 gol (aplicare, anulare,
   reaplicare), teste, prospețimea `openapi.json` și a migrărilor;
 - **frontend**: lint, tipuri, prospețimea tipurilor API, teste, build;
-- **compose**: `make up` de la zero, `/health`, proxy-ul frontendului, cele 17 tabele.
+- **compose**: `make up` de la zero, `/health`, proxy-ul frontendului, cele 17 tabele, limitele
+  workerului, un TXT, un DOCX și un PDF care trec singure în „Gata” (și numărarea paginilor pe Alpine)
+  și oprirea curată a workerului.
