@@ -545,14 +545,27 @@ export function createDocumentsService(deps: DocumentsServiceDeps): DocumentsSer
   return service;
 }
 
-/** Background tasks of the module (design 9). Segment 2C registers them in `src/worker.ts`. */
-export function documentsWorkerTasks(service: DocumentsService): WorkerTask[] {
+/**
+ * Background tasks of the module (design 9), registered in `src/worker.ts` (Segment 2C).
+ *
+ * `process-queue` takes one document at a time and, when the worker is told to stop, takes no new
+ * one but lets the document in hand FINISH: it is not given the stop signal. The document is
+ * bounded by its own time limit (DOCUMENT_PROCESSING_TIMEOUT_SECONDS), so the stop waits at most
+ * that long; this is why the container's `stop_grace_period` must be longer than the limit
+ * (docs/design/documents.md, 9). Handing it the signal instead would kill the child process that
+ * reads a PDF, and the document would end as an error that was nobody's fault.
+ */
+export function documentsWorkerTasks(
+  service: DocumentsService,
+  options: { pollIntervalMs?: number } = {},
+): WorkerTask[] {
   return [
     {
       name: 'documents:process-queue',
-      intervalMs: 1_000,
+      intervalMs: options.pollIntervalMs ?? 1_000,
       run: async (signal) => {
-        while (!signal.aborted && (await service.processNextDocument(signal))) {
+        // The stop signal is looked at BETWEEN documents only.
+        while (!signal.aborted && (await service.processNextDocument())) {
           // one document after the other, until the queue is empty
         }
       },
